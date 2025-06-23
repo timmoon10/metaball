@@ -1,6 +1,5 @@
-#include <iostream>
-
 #include <QtWidgets>
+#include <iostream>
 
 #include "metaball/runner.hpp"
 

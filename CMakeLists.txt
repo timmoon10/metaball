@@ -18,6 +18,8 @@ find_package(Qt6 REQUIRED Core Widgets)
 
 # Configure executable
 set(SOURCE_FILES
+    src/metaball/camera.cpp
+    src/metaball/image.cpp
     src/metaball/main.cpp
     src/metaball/runner.cpp
     )

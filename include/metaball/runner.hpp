@@ -1,9 +1,10 @@
 #pragma once
 
-#include <string>
-
 #include <QPaintEvent>
 #include <QtWidgets>
+#include <string>
+
+#include "metaball/camera.hpp"
 
 namespace metaball {
 
@@ -20,6 +21,8 @@ class Runner : public QWidget {
  protected:
   void paintEvent(QPaintEvent* event) override;
 
+ private:
+  Camera camera_;
 };
 
 }  // namespace metaball
