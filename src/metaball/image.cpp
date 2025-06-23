@@ -20,6 +20,17 @@ void Image::set(size_t i, size_t j, Scalar val) { data_[i * width_ + j] = val; }
 
 Scalar Image::get(size_t i, size_t j) const { return data_[i * width_ + j]; }
 
+void Image::normalize() {
+  const auto [min_it, max_it] = std::minmax_element(data_.begin(), data_.end());
+  auto min = *min_it;
+  auto max = *max_it;
+  Scalar scale = (max > min) ? 1 / (max - min) : 0;
+  Scalar shift = -min * scale;
+  for (auto& val: data_) {
+    val = val * scale + shift;
+  }
+}
+
 QImage Image::make_qimage() const {
   QImage retval(width_, height_, QImage::Format_RGB32);
   for (size_t i = 0; i < height_; ++i) {

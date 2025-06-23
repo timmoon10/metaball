@@ -32,7 +32,8 @@ class Vector {
   constexpr Vector(Scalar x, Scalar y) noexcept;
 
   /*! Swap data between two vectors */
-  friend constexpr void swap(Vector& a, Vector& b) noexcept;
+  template <size_t n>
+  friend constexpr void swap(Vector<n>& a, Vector<n>& b) noexcept;
 
   /*! Get vector element */
   constexpr Scalar& operator[](size_t i);
@@ -44,7 +45,8 @@ class Vector {
   constexpr Vector operator-(const Vector& other) const noexcept;
   constexpr Vector operator*(const Scalar& other) const noexcept;
   constexpr Vector operator/(const Scalar& other) const noexcept;
-  friend constexpr Vector operator*(const Scalar& a, const Vector& b) noexcept;
+  template <size_t n>
+  friend constexpr Vector<n> operator*(const Scalar& a, const Vector<n>& b) noexcept;
 
   constexpr Vector& operator+=(const Vector& other) noexcept;
   constexpr Vector& operator-=(const Vector& other) noexcept;
@@ -66,21 +68,23 @@ class Vector {
 
   Vector unit() const;
 
-  /*! Entry-wise maximum */
-  friend constexpr Vector max(const Vector& a, const Vector& b) noexcept;
-  /*! Entry-wise minimum */
-  friend constexpr Vector min(const Vector& a, const Vector& b) noexcept;
-
-  /*! Dot product */
-  friend constexpr Scalar dot(const Vector& a, const Vector& b) noexcept;
-
  private:
   std::array<Scalar, N> data_;
 };
 
-/*! 2D vector */
-using Vec2 = Vector<2>;
-using Vec2List = std::vector<Vec2>;
+/*! Entry-wise maximum */
+template <size_t N>
+constexpr Vector<N> max(const Vector<N>& a, const Vector<N>& b) noexcept;
+/*! Entry-wise minimum */
+template <size_t N>
+constexpr Vector<N> min(const Vector<N>& a, const Vector<N>& b) noexcept;
+
+/*! Dot product */
+template <size_t N>
+constexpr Scalar dot(const Vector<N>& a, const Vector<N>& b) noexcept;
+
+/*! Cross product */
+constexpr Vector<3> cross(const Vector<3>& a, const Vector<3>& b) noexcept;
 
 }  // namespace metaball
 
@@ -287,6 +291,14 @@ inline constexpr Scalar dot(const Vector<N>& a, const Vector<N>& b) noexcept {
   for (size_t i = 1; i < N; ++i) {
     out += a[i] * b[i];
   }
+  return out;
+}
+
+inline constexpr Vector<3> cross(const Vector<3>& a, const Vector<3>& b) noexcept {
+  Vector<3> out;
+  out[0] = a[1] * b[2] - a[2] * b[1];
+  out[1] = a[2] * b[0] - a[0] * b[2];
+  out[2] = a[0] * b[1] - a[1] * b[0];
   return out;
 }
 

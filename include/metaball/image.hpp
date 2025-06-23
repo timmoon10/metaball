@@ -19,6 +19,8 @@ class Image {
   void set(size_t i, size_t j, Scalar val);
   Scalar get(size_t i, size_t j) const;
 
+  void normalize();
+
   QImage make_qimage() const;
 
  private:
