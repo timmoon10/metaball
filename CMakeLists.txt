@@ -19,6 +19,7 @@ find_package(Qt6 REQUIRED Core Widgets)
 # Configure executable
 set(SOURCE_FILES
     src/metaball/main.cpp
+    src/metaball/runner.cpp
     )
 add_executable(metaball ${SOURCE_FILES})
 include_directories(include)
