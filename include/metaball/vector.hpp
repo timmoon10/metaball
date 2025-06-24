@@ -46,7 +46,8 @@ class Vector {
   constexpr Vector operator*(const Scalar& other) const noexcept;
   constexpr Vector operator/(const Scalar& other) const noexcept;
   template <size_t n>
-  friend constexpr Vector<n> operator*(const Scalar& a, const Vector<n>& b) noexcept;
+  friend constexpr Vector<n> operator*(const Scalar& a,
+                                       const Vector<n>& b) noexcept;
 
   constexpr Vector& operator+=(const Vector& other) noexcept;
   constexpr Vector& operator-=(const Vector& other) noexcept;
@@ -294,7 +295,8 @@ inline constexpr Scalar dot(const Vector<N>& a, const Vector<N>& b) noexcept {
   return out;
 }
 
-inline constexpr Vector<3> cross(const Vector<3>& a, const Vector<3>& b) noexcept {
+inline constexpr Vector<3> cross(const Vector<3>& a,
+                                 const Vector<3>& b) noexcept {
   Vector<3> out;
   out[0] = a[1] * b[2] - a[2] * b[1];
   out[1] = a[2] * b[0] - a[0] * b[2];

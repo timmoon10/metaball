@@ -11,7 +11,7 @@ if [ "$(uname)" == "Darwin" ]; then
 fi
 
 # clang-format
-clang-format -style=Google -i src/metaball/* include/metaball/* include/util/*
+clang-format -style=Google -i src/metaball/* include/metaball/* include/util/* include/util/impl/*
 
 # Clean up
 popd

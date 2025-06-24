@@ -17,7 +17,6 @@ class Camera {
   Vector<ndim> aperture_position_;
   Vector<ndim> image_offset_;
   Vector<ndim> image_rotation_;
-
 };
 
 }  // namespace metaball

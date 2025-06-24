@@ -26,7 +26,7 @@ void Image::normalize() {
   auto max = *max_it;
   Scalar scale = (max > min) ? 1 / (max - min) : 0;
   Scalar shift = -min * scale;
-  for (auto& val: data_) {
+  for (auto& val : data_) {
     val = val * scale + shift;
   }
 }
