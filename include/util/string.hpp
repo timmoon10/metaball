@@ -26,4 +26,5 @@ T from_string(const std::string& str);
 
 }  // namespace util
 
+// Implementation
 #include "util/impl/string.hpp"

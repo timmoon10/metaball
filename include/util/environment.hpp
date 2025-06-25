@@ -18,4 +18,5 @@ const T getenv(const std::string& variable);
 
 }  // namespace util
 
+// Implementation
 #include "util/impl/environment.hpp"

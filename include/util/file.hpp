@@ -9,4 +9,5 @@ bool file_exists(const std::string& file);
 
 }  // namespace util
 
+// Implementation
 #include "util/impl/file.hpp"
