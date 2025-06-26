@@ -1,5 +1,7 @@
 #include <array>
+#include <algorithm>
 #include <cmath>
+#include <initializer_list>
 
 #include "util/error.hpp"
 
@@ -23,9 +25,8 @@ inline constexpr Vector<N, T>::Vector(const T& value) noexcept {
 template <size_t N, typename T>
 template <typename S>
 inline constexpr Vector<N, T>::Vector(std::initializer_list<S> init) noexcept {
-  static_assert(init.size == N,
-                "Initializer list size does not match vector dims");
-  std::copy(init.begin(), init.end(), data_.begin());
+  /// TODO Figure out how to enforce matching size
+  std::copy(init.begin(), init.begin() + std::min(init.size(), N), data_.begin());
 }
 
 template <size_t N, typename T>
@@ -146,6 +147,11 @@ inline constexpr Vector<N, T>& Vector<N, T>::operator/=(
     data_[i] /= other;
   }
   return *this;
+}
+
+template <size_t N, typename T>
+inline constexpr Vector<N, T>::operator Vector<N, T>::ContainerType() const noexcept {
+  return data_;
 }
 
 template <size_t N, typename T>

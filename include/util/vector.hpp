@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <initializer_list>
 
 namespace util {
 
@@ -12,6 +13,7 @@ class Vector {
   static constexpr size_t ndim = NDim;
   /*! Scalar type */
   using ScalarType = Scalar;
+  using ContainerType = std::array<Scalar, NDim>;
 
   constexpr Vector(const Scalar& value = 0) noexcept;
   template <typename S>
@@ -40,6 +42,8 @@ class Vector {
   constexpr Vector& operator*=(const Scalar& other) noexcept;
   constexpr Vector& operator/=(const Scalar& other) noexcept;
 
+  constexpr operator ContainerType() const noexcept;
+
   /*! Set all vector elements to value */
   constexpr void fill(const Scalar& value) noexcept;
   /*! Set all vector elements to zero */
@@ -57,7 +61,7 @@ class Vector {
   Vector unit() const;
 
  private:
-  std::array<Scalar, ndim> data_;
+  ContainerType data_;
 };
 
 /*! Entry-wise maximum */

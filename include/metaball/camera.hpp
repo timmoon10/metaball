@@ -1,23 +1,21 @@
 #pragma once
 
 #include "metaball/image.hpp"
-#include "util/vector.hpp"
+#include "metaball/scene.hpp"
 
 namespace metaball {
 
 class Camera {
  public:
-  static constexpr size_t ndim = 3;
-  using ScalarType = Image::DataType;
 
   Camera();
 
   Image make_image(size_t height, size_t width) const;
 
  private:
-  util::Vector<ndim, ScalarType> aperture_position_;
-  util::Vector<ndim, ScalarType> image_offset_;
-  util::Vector<ndim, ScalarType> image_rotation_;
+  Scene::VectorType aperture_position_;
+  Scene::VectorType image_offset_;
+  Scene::VectorType image_rotation_;
 };
 
 }  // namespace metaball

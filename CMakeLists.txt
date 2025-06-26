@@ -22,6 +22,7 @@ set(SOURCE_FILES
     src/metaball/image.cpp
     src/metaball/main.cpp
     src/metaball/runner.cpp
+    src/metaball/scene.cpp
     )
 add_executable(metaball ${SOURCE_FILES})
 include_directories(include)
