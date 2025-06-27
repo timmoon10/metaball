@@ -4,7 +4,7 @@
 
 namespace util {
 
-/*! Check if file can be read */
+/*! \brief Check if file can be read */
 bool file_exists(const std::string& file);
 
 }  // namespace util

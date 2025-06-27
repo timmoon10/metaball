@@ -1,7 +1,6 @@
-#include <array>
 #include <algorithm>
+#include <array>
 #include <cmath>
-#include <initializer_list>
 
 #include "util/error.hpp"
 
@@ -18,15 +17,16 @@
 namespace util {
 
 template <size_t N, typename T>
-inline constexpr Vector<N, T>::Vector(const T& value) noexcept {
-  data_.fill(value);
+inline constexpr Vector<N, T>::Vector() noexcept {
+  data_.fill(0);
 }
 
 template <size_t N, typename T>
-template <typename S>
-inline constexpr Vector<N, T>::Vector(std::initializer_list<S> init) noexcept {
-  /// TODO Figure out how to enforce matching size
-  std::copy(init.begin(), init.begin() + std::min(init.size(), N), data_.begin());
+template <typename... Ts>
+inline constexpr Vector<N, T>::Vector(Ts... values) noexcept
+    : data_{static_cast<T>(values)...} {
+  static_assert(sizeof...(values) == N,
+                "attempted to initialize vector with invalid number of values");
 }
 
 template <size_t N, typename T>
@@ -98,17 +98,6 @@ inline constexpr Vector<N, T> Vector<N, T>::operator/(
   return result;
 }
 
-template <size_t N, typename S, typename T>
-inline constexpr Vector<N, T> operator*(const S& a,
-                                        const Vector<N, T>& b) noexcept {
-  Vector<N, T> result;
-  UTIL_LOOP_UNROLL(N)
-  for (size_t i = 0; i < N; ++i) {
-    result[i] = a * b[i];
-  }
-  return result;
-}
-
 template <size_t N, typename T>
 inline constexpr Vector<N, T>& Vector<N, T>::operator+=(
     const Vector<N, T>& other) noexcept {
@@ -149,8 +138,20 @@ inline constexpr Vector<N, T>& Vector<N, T>::operator/=(
   return *this;
 }
 
+template <size_t N, typename S, typename T>
+inline constexpr Vector<N, T> operator*(const S& a,
+                                        const Vector<N, T>& b) noexcept {
+  Vector<N, T> result;
+  UTIL_LOOP_UNROLL(N)
+  for (size_t i = 0; i < N; ++i) {
+    result[i] = a * b[i];
+  }
+  return result;
+}
+
 template <size_t N, typename T>
-inline constexpr Vector<N, T>::operator Vector<N, T>::ContainerType() const noexcept {
+inline constexpr Vector<N, T>::operator Vector<N, T>::ContainerType()
+    const noexcept {
   return data_;
 }
 

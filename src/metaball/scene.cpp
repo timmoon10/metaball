@@ -12,22 +12,21 @@ Scene::ScalarType Scene::trace_ray(const Scene::VectorType& origin,
   auto density_field = [](const VectorType& position) -> ScalarType {
     constexpr VectorType source1 = {1, 1, 4};
     constexpr VectorType source2 = {-1, -1, 4};
-    return (1 / (1 + (position - source1).norm2())
-            + 1 / (1 + (position - source2).norm2()));
+    return (1 / (1 + (position - source1).norm2()) +
+            1 / (1 + (position - source2).norm2()));
   };
 
   // Trapezoid rule
-  UTIL_CHECK(orientation.norm2() > 0,
-             "Invalid orientation (",
+  UTIL_CHECK(orientation.norm2() > 0, "Invalid orientation (",
              static_cast<VectorType::ContainerType>(orientation), ")");
   UTIL_CHECK(num_evals >= 2, "Invalid number of evaluations (", num_evals, ")");
   const ScalarType grid_size = max_distance / (num_evals - 1);
   const VectorType grid_shift = orientation * (grid_size / orientation.norm());
   ScalarType result = density_field(origin) / 2;
-  for (size_t i=1; i<num_evals-1; ++i) {
+  for (size_t i = 1; i < num_evals - 1; ++i) {
     result += density_field(origin + i * grid_shift);
   }
-  result += density_field(origin + (num_evals-1) * grid_shift) / 2;
+  result += density_field(origin + (num_evals - 1) * grid_shift) / 2;
   result *= grid_size;
   return result;
 }

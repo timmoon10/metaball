@@ -7,7 +7,6 @@ namespace metaball {
 
 class Camera {
  public:
-
   Camera();
 
   Image make_image(size_t height, size_t width) const;

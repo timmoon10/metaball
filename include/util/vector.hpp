@@ -1,83 +1,96 @@
 #pragma once
 
 #include <array>
-#include <initializer_list>
 
 namespace util {
 
-/*! Real vector */
+/*! \brief Real vector */
 template <size_t NDim, typename Scalar = double>
 class Vector {
  public:
-  /*! Number of vector dimensions */
+  /*! \brief Number of vector dimensions */
   static constexpr size_t ndim = NDim;
-  /*! Scalar type */
+  /*! \brief Scalar type */
   using ScalarType = Scalar;
-  using ContainerType = std::array<Scalar, NDim>;
+  /*! \brief Underlying data container type */
+  using ContainerType = std::array<Scalar, ndim>;
 
-  constexpr Vector(const Scalar& value = 0) noexcept;
-  template <typename S>
-  constexpr Vector(std::initializer_list<S> init) noexcept;
+  /*! \brief Default constructor
+   *
+   * The vector is initialized to zero.
+   */
+  constexpr Vector() noexcept;
+  /*! \brief Constructor from values
+   *
+   * The number of values must match the number of vector dimensions.
+   */
+  template <typename... Ts>
+  constexpr Vector(Ts... values) noexcept;
 
-  /*! Swap data between two vectors */
+  /*! \brief Swap data between two vectors */
   template <size_t N, typename T>
   friend constexpr void swap(Vector<N, T>& a, Vector<N, T>& b) noexcept;
 
-  /*! Get vector element */
+  /*! \brief Get vector element */
   constexpr Scalar& operator[](size_t i);
-  /*! Get vector element */
+  /*! \brief Get vector element */
   constexpr const Scalar& operator[](size_t i) const;
 
+  // Math operators
   constexpr Vector operator-() const noexcept;
   constexpr Vector operator+(const Vector& other) const noexcept;
   constexpr Vector operator-(const Vector& other) const noexcept;
   constexpr Vector operator*(const Scalar& other) const noexcept;
   constexpr Vector operator/(const Scalar& other) const noexcept;
-  template <size_t N, typename S, typename T>
-  friend constexpr Vector<N, T> operator*(const S& a,
-                                          const Vector<N, T>& b) noexcept;
-
   constexpr Vector& operator+=(const Vector& other) noexcept;
   constexpr Vector& operator-=(const Vector& other) noexcept;
   constexpr Vector& operator*=(const Scalar& other) noexcept;
   constexpr Vector& operator/=(const Scalar& other) noexcept;
+  template <size_t N, typename S, typename T>
+  friend constexpr Vector<N, T> operator*(const S& a,
+                                          const Vector<N, T>& b) noexcept;
 
+  /*! \brief Cast to underlying data container */
   constexpr operator ContainerType() const noexcept;
 
-  /*! Set all vector elements to value */
+  /*! \brief Set all vector elements to value */
   constexpr void fill(const Scalar& value) noexcept;
-  /*! Set all vector elements to zero */
+  /*! \brief Set all vector elements to zero */
   constexpr void zero() noexcept;
 
-  /*! 2-norm */
+  /*! \brief 2-norm */
   Scalar norm() const;
-  /*! Square of 2-norm */
+  /*! \brief Square of 2-norm */
   constexpr Scalar norm2() const noexcept;
 
-  /*! Whether all vector elements are finite */
+  /*! \brief Whether all vector elements are finite */
   bool isfinite() const noexcept;
 
-  /*! Normalize  */
+  /*! \brief Normalize to unit vector */
   Vector unit() const;
 
  private:
+  /*! \brief Underlying data container */
   ContainerType data_;
 };
 
-/*! Entry-wise maximum */
+/*! \brief Entry-wise maximum */
 template <size_t N, typename T>
 constexpr Vector<N, T> max(const Vector<N, T>& a,
                            const Vector<N, T>& b) noexcept;
-/*! Entry-wise minimum */
+/*! \brief Entry-wise minimum */
 template <size_t N, typename T>
 constexpr Vector<N, T> min(const Vector<N, T>& a,
                            const Vector<N, T>& b) noexcept;
 
-/*! Dot product */
+/*! \brief Dot product */
 template <size_t N, typename T>
 constexpr T dot(const Vector<N, T>& a, const Vector<N, T>& b) noexcept;
 
-/*! Cross product */
+/*! \brief Cross product
+ *
+ * Only supported with 3D vectors.
+ */
 template <size_t N, typename T>
 constexpr Vector<N, T> cross(const Vector<N, T>& a,
                              const Vector<N, T>& b) noexcept;
