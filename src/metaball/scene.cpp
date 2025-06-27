@@ -1,6 +1,7 @@
 #include "metaball/scene.hpp"
 
 #include "util/error.hpp"
+#include "util/math.hpp"
 
 namespace metaball {
 
@@ -10,10 +11,12 @@ Scene::ScalarType Scene::trace_ray(const Scene::VectorType& origin,
                                    size_t num_evals) const {
   // TODO Adjustable density field
   auto density_field = [](const VectorType& position) -> ScalarType {
-    constexpr VectorType source1 = {1, 1, 4};
-    constexpr VectorType source2 = {-1, -1, 4};
-    return (1 / (1 + (position - source1).norm2()) +
-            1 / (1 + (position - source2).norm2()));
+    constexpr VectorType source1 = {0.7, 0.7, 4};
+    constexpr VectorType source2 = {-0.7, -0.7, 4};
+    auto density = (1 / (1 + (position - source1).norm2()) +
+                    1 / (1 + (position - source2).norm2()));
+    density = util::sigmoid(32*(density-1));
+    return density;
   };
 
   // Trapezoid rule
