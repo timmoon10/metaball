@@ -14,12 +14,13 @@ class Image {
   size_t height() const noexcept;
   size_t width() const noexcept;
 
+  void set(size_t i, size_t j, DataType r, DataType g, DataType b);
   void set(size_t i, size_t j, DataType val);
-  DataType get(size_t i, size_t j) const;
+  std::array<DataType, 3> get(size_t i, size_t j) const;
+
+  operator QImage() const;
 
   void normalize();
-
-  QImage make_qimage() const;
 
  private:
   std::vector<DataType> data_;

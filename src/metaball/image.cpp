@@ -8,18 +8,49 @@
 namespace metaball {
 
 Image::Image(size_t height, size_t width)
-    : data_(height * width), height_{height}, width_{width} {}
+    : data_(height * width * 3), height_{height}, width_{width} {}
 
 size_t Image::height() const noexcept { return height_; }
 
 size_t Image::width() const noexcept { return width_; }
 
-void Image::set(size_t i, size_t j, Image::DataType val) {
-  data_[i * width_ + j] = val;
+void Image::set(size_t i,
+                size_t j,
+                Image::DataType r,
+                Image::DataType g,
+                Image::DataType b) {
+  const size_t offset = (i * width_ + j) * 3;
+  data_[offset] = r;
+  data_[offset+1] = g;
+  data_[offset+2] = b;
 }
 
-Image::DataType Image::get(size_t i, size_t j) const {
-  return data_[i * width_ + j];
+void Image::set(size_t i, size_t j, Image::DataType val) {
+  set(i, j, val, val, val);
+}
+
+std::array<Image::DataType, 3> Image::get(size_t i, size_t j) const {
+  const size_t offset = (i * width_ + j) * 3;
+  return {data_[offset], data_[offset+1], data_[offset+2]};
+}
+
+Image::operator QImage () const {
+  QImage result(width_, height_, QImage::Format_RGB32);
+  for (size_t i = 0; i < height_; ++i) {
+    for (size_t j = 0; j < width_; ++j) {
+      const size_t offset = (i * width_ + j) * 3;
+      constexpr DataType min = 0;
+      constexpr DataType max = 255;
+      const auto r = std::clamp(256 * data_[offset], min, max);
+      const auto g = std::clamp(256 * data_[offset+1], min, max);
+      const auto b = std::clamp(256 * data_[offset+2], min, max);
+      const auto color = qRgb(static_cast<int>(r),
+                              static_cast<int>(g),
+                              static_cast<int>(b));
+      result.setPixel(j, i, color);
+    }
+  }
+  return result;
 }
 
 void Image::normalize() {
@@ -31,18 +62,6 @@ void Image::normalize() {
   for (auto& val : data_) {
     val = val * scale + shift;
   }
-}
-
-QImage Image::make_qimage() const {
-  QImage result(width_, height_, QImage::Format_RGB32);
-  for (size_t i = 0; i < height_; ++i) {
-    for (size_t j = 0; j < width_; ++j) {
-      int val = static_cast<int>(256 * data_[i * width_ + j]);
-      val = std::max(std::min(val, 255), 0);
-      result.setPixel(j, i, qRgb(val, val, val));
-    }
-  }
-  return result;
 }
 
 }  // namespace metaball

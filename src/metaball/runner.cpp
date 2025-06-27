@@ -49,7 +49,7 @@ void Runner::paintEvent(QPaintEvent*) {
 
   // Render image
   auto image = camera_.make_image(height(), width());
-  painter.drawImage(0, 0, image.make_qimage());
+  painter.drawImage(0, 0, image);
 }
 
 }  // namespace metaball
