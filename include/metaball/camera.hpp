@@ -15,6 +15,9 @@ class Camera {
   Scene::VectorType aperture_position_;
   Scene::VectorType image_offset_;
   Scene::VectorType image_rotation_;
+
+  Scene::ScalarType film_speed_ = 1;
+
 };
 
 }  // namespace metaball

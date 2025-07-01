@@ -7,6 +7,23 @@
 
 namespace metaball {
 
+namespace {
+
+/*! @brief Gamma 2.2 opto-electronic transfer function
+ *
+ * Convert light intensity to electrical signal. Approximates sRGB
+ * transfer function.
+ */
+inline Scene::ScalarType gamma_transfer_function(Scene::ScalarType intensity) {
+  constexpr Scene::ScalarType min_intensity = 0;
+  constexpr Scene::ScalarType max_intensity = 1;
+  constexpr Scene::ScalarType reciprocal_gamma = 1 / 2.2;
+  intensity = std::clamp(intensity, min_intensity, max_intensity);
+  return std::pow(intensity, reciprocal_gamma);
+}
+
+}  // namespace
+
 Camera::Camera() {
   image_offset_[image_offset_.ndim - 1] = -1;
   image_rotation_[0] = 1;
@@ -31,7 +48,7 @@ Image Camera::make_image(size_t height, size_t width) const {
     shift_x /= shift_x.norm() * image_size;
   }
   static_assert(Scene::ndim == 3);
-  auto shift_y = util::cross(image_offset_, shift_x);
+  auto shift_y = util::cross(shift_x, image_offset_);
   if (shift_y.norm2() > 0) {
     shift_y /= shift_y.norm() * image_size;
   }
@@ -42,16 +59,16 @@ Image Camera::make_image(size_t height, size_t width) const {
   corner_pixel += (-static_cast<Scene::ScalarType>(height - 1) / 2) * shift_y;
 
   // Calculate ray for each pixel
+  // Note: Reflect image horizontally
   Image result(height, width);
   for (size_t i = 0; i < height; ++i) {
     for (size_t j = 0; j < width; ++j) {
-      auto pixel = corner_pixel + i * shift_y + j * shift_x;
+      auto pixel = corner_pixel + i * shift_y + (width-j-1) * shift_x;
       auto ray = aperture_position_ - pixel;
-      auto val = scene.trace_ray(aperture_position_, ray, 8, 64);
-      result.set(i, j, val);
+      auto intensity = scene.trace_ray(aperture_position_, ray, 8, 64);
+      result.set(i, j, gamma_transfer_function(intensity * film_speed_));
     }
   }
-  result.normalize();
   return result;
 }
 
