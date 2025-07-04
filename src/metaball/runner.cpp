@@ -48,7 +48,7 @@ void Runner::paintEvent(QPaintEvent*) {
   painter.setRenderHint(QPainter::Antialiasing);
 
   // Render image
-  auto image = camera_.make_image(height(), width());
+  auto image = camera_.make_image(scene_, height(), width());
   painter.drawImage(0, 0, image);
 }
 

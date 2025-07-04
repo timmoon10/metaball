@@ -5,6 +5,7 @@
 #include <string>
 
 #include "metaball/camera.hpp"
+#include "metaball/scene.hpp"
 
 namespace metaball {
 
@@ -22,6 +23,7 @@ class Runner : public QWidget {
   void paintEvent(QPaintEvent* event) override;
 
  private:
+  Scene scene_;
   Camera camera_;
 };
 

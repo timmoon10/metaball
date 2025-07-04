@@ -15,7 +15,7 @@ Scene::ScalarType Scene::trace_ray(const Scene::VectorType& origin,
     constexpr VectorType source2 = {-0.7, -0.7, 4};
     auto density = (1 / (1 + (position - source1).norm2()) +
                     1 / (1 + (position - source2).norm2()));
-    density = util::sigmoid(32*(density-1));
+    density = util::sigmoid(32 * (density - 1));
     return density;
   };
 
