@@ -35,7 +35,9 @@ inline const std::string_view& to_string_like(
   return val;
 }
 
-constexpr const char* to_string_like(const char* val) noexcept { return val; }
+inline constexpr const char* to_string_like(const char* val) noexcept {
+  return val;
+}
 
 template <impl::string::HasToString T>
 inline std::string to_string_like(const T& val) {
@@ -44,9 +46,9 @@ inline std::string to_string_like(const T& val) {
 
 // Forward declare cases that internally call to_string_like
 template <std::ranges::range T>
-inline std::string to_string_like(const T& range);
+std::string to_string_like(const T& range);
 template <typename T1, typename T2>
-inline std::string to_string_like(const std::pair<T1, T2>& pair);
+std::string to_string_like(const std::pair<T1, T2>& pair);
 
 template <std::ranges::range T>
 inline std::string to_string_like(const T& range) {
