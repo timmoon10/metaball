@@ -1,6 +1,5 @@
 #include <QtWidgets>
 #include <iostream>
-#include <thread>
 
 #include "metaball/runner.hpp"
 
@@ -12,8 +11,9 @@ int main(int argc, char* argv[]) {
   runner.show();
   std::cout << runner.help_message() << std::endl;
 
-  std::thread t(&metaball::Runner::run_command_loop,
-                &runner);  /// TODO Handle properly
+  // Start command loop
+  runner.start_command_loop();
 
+  // Start event loop
   return app.exec();
 }
