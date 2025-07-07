@@ -62,7 +62,7 @@ void Runner::start_command_loop() {
       // Read user input
       std::cout << "> ";
       std::string commands;
-      std::cin >> commands;
+      std::getline(std::cin, commands);
 
       // Stop if loop is disabled
       if (!this->command_input_loop_is_active_) {
@@ -126,7 +126,7 @@ std::string Runner::info_message() const {
   _("Film speed: ", camera_.film_speed());
 
   // Return string
-  ss << std::flush;
+  ss << std::endl;
   return ss.str();
 }
 
@@ -147,37 +147,50 @@ void Runner::process_commands() {
   }
 
   // Read from command queue
-  std::vector<std::string> commands;
+  std::vector<std::string> command_queue_copy;
   {
     std::lock_guard<std::mutex> guard(command_queue_mutex_);
     for (; !command_queue_.empty(); command_queue_.pop()) {
-      commands.push_back(std::move(command_queue_.front()));
+      command_queue_copy.push_back(std::move(command_queue_.front()));
     }
   }
 
   // Parse and run commands
-  for (const auto& command : commands) {
-    /// TODO Multiple commands
-    /// TODO Split command and params
-    try {
-      run_command(command, "");
-    } catch (const std::exception& err) {
-      std::cout << util::concat_strings(err.what(), "\n") << std::flush;
+  for (const auto& commands : command_queue_copy) {
+    for (const auto& command : util::split(commands, ";")) {
+      auto parsed_command = util::split(command, "=", 2);
+      UTIL_CHECK(parsed_command.size() >= 1, "error parsing command (", command,
+                 ")");
+      UTIL_CHECK(parsed_command.size() <= 2, "error parsing command (", command,
+                 ")");
+      const auto& name = util::strip(parsed_command[0]);
+      const auto& params =
+          parsed_command.size() > 1 ? util::strip(parsed_command[1]) : "";
+      try {
+        run_command(name, params);
+      } catch (const std::exception& err) {
+        std::cout << util::concat_strings(err.what(), "\n") << std::flush;
+      }
     }
   }
 }
 
-void Runner::run_command(const std::string_view& command,
+void Runner::run_command(const std::string_view& name,
                          const std::string_view& params) {
   (void)params;  /// TODO Handle params
-  if (command == "info") {
+  if (name == "") {
+  } else if (name == "info") {
     std::cout << info_message() << std::flush;
-  } else if (command == "exit" || command == "quit") {
+  } else if (name == "exit" || name == "quit") {
     stop_command_loop();
     QApplication::quit();
+  } else if (name == "film speed") {
+    const auto val = util::from_string<Camera::ScalarType>(std::string(params));
+    camera_.set_film_speed(val);
+    update();
   } else {
     throw std::runtime_error(
-        util::concat_strings("Unrecognized command: ", command, "\n"));
+        util::concat_strings("Unrecognized command: ", name, "\n"));
   }
 }
 

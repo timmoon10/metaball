@@ -95,41 +95,6 @@ inline std::string concat_strings(const Ts&... args) {
 }  // namespace util
 
 // ---------------------------------------------
-// strip/lstrip/rstrip
-// ---------------------------------------------
-
-namespace util {
-
-inline std::string_view strip(const std::string_view& str) {
-  size_t first{0}, last{str.size()};
-  for (auto it = str.begin(); it != str.end() && std::isspace(*it);
-       ++it, ++first) {
-  }
-  for (auto it = str.rbegin();
-       it != str.rend() && last > first && std::isspace(*it); ++it, --last) {
-  }
-  return str.substr(first, last - first);
-}
-
-inline std::string_view lstrip(const std::string_view& str) {
-  size_t first{0};
-  for (auto it = str.begin(); it != str.end() && std::isspace(*it);
-       ++it, ++first) {
-  }
-  return str.substr(first, str.size() - first);
-}
-
-inline std::string_view rstrip(const std::string_view& str) {
-  size_t last{str.size()};
-  for (auto it = str.rbegin(); it != str.rend() && std::isspace(*it);
-       ++it, --last) {
-  }
-  return str.substr(0, last);
-}
-
-}  // namespace util
-
-// ---------------------------------------------
 // from_string
 // ---------------------------------------------
 
@@ -194,6 +159,70 @@ inline T from_string(const std::string& str) {
              "Invalid conversion from string (type=", typeid(T).name(),
              ", string=\"", str, "\")");
   return value;
+}
+
+}  // namespace util
+
+// ---------------------------------------------
+// strip/lstrip/rstrip
+// ---------------------------------------------
+
+namespace util {
+
+inline std::string_view strip(const std::string_view& str) {
+  size_t first{0}, last{str.size()};
+  for (auto it = str.begin(); it != str.end() && std::isspace(*it);
+       ++it, ++first) {
+  }
+  for (auto it = str.rbegin();
+       it != str.rend() && last > first && std::isspace(*it); ++it, --last) {
+  }
+  return str.substr(first, last - first);
+}
+
+inline std::string_view lstrip(const std::string_view& str) {
+  size_t first{0};
+  for (auto it = str.begin(); it != str.end() && std::isspace(*it);
+       ++it, ++first) {
+  }
+  return str.substr(first, str.size() - first);
+}
+
+inline std::string_view rstrip(const std::string_view& str) {
+  size_t last{str.size()};
+  for (auto it = str.rbegin(); it != str.rend() && std::isspace(*it);
+       ++it, --last) {
+  }
+  return str.substr(0, last);
+}
+
+}  // namespace util
+
+// ---------------------------------------------
+// split
+// ---------------------------------------------
+
+namespace util {
+
+inline std::vector<std::string_view> split(const std::string_view& str,
+                                           const std::string_view& separator,
+                                           size_t maxsplit) {
+  UTIL_CHECK(separator.size() > 0, "separator string is empty");
+
+  // Split string until reaching end of string or split limit
+  std::vector<std::string_view> result;
+  size_t pos = 0;
+  while (pos != str.npos && (maxsplit == 0 || result.size() < maxsplit - 1)) {
+    const size_t sep_pos = str.find(separator, pos);
+    const size_t count = sep_pos == str.npos ? str.npos : sep_pos - pos;
+    result.emplace_back(str.substr(pos, count));
+    pos = sep_pos == str.npos ? str.npos : sep_pos + separator.size();
+  }
+  if (pos != str.npos) {
+    result.emplace_back(str.substr(pos, str.npos));
+  }
+
+  return result;
 }
 
 }  // namespace util
