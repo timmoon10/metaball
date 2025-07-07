@@ -18,6 +18,16 @@
 #include "metaball/camera.hpp"
 #include "metaball/image.hpp"
 #include "util/string.hpp"
+#include "util/vector.hpp"
+
+namespace util {
+
+template <size_t N, typename T>
+inline std::string to_string_like(const Vector<N, T>& val) {
+  return to_string_like(static_cast<Vector<N, T>::ContainerType>(val));
+}
+
+}  // namespace util
 
 namespace metaball {
 
@@ -101,11 +111,19 @@ std::string Runner::help_message() const {
 
 std::string Runner::info_message() const {
   std::ostringstream ss;
-  auto _ = [&ss](const std::string_view& str) { ss << str << "\n"; };
+  auto _ = [&ss]<typename... Ts>(const Ts&... args) {
+    ss << util::concat_strings(args...) << "\n";
+  };
 
   // Header
   _("Information");
   _("-----------");
+
+  // Camera properties
+  _("Aperture position: ", camera_.aperture_position());
+  _("Image offset: ", camera_.image_offset());
+  _("Image rotation: ", camera_.image_rotation());
+  _("Film speed: ", camera_.film_speed());
 
   // Return string
   ss << std::flush;

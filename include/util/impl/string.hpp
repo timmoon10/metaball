@@ -53,7 +53,6 @@ std::string to_string_like(const std::pair<T1, T2>& pair);
 template <std::ranges::range T>
 inline std::string to_string_like(const T& range) {
   std::string str;
-  str.reserve(128);  // Assume strings are <128 B
   str += "[";
   bool first = true;
   for (const auto& val : range) {
@@ -70,7 +69,6 @@ inline std::string to_string_like(const T& range) {
 template <typename T1, typename T2>
 inline std::string to_string_like(const std::pair<T1, T2>& pair) {
   std::string str;
-  str.reserve(128);  // Assume strings are <128 B
   str += "[";
   str += to_string_like(pair.first);
   str += ",";
@@ -90,7 +88,6 @@ namespace util {
 template <typename... Ts>
 inline std::string concat_strings(const Ts&... args) {
   std::string str;
-  str.reserve(128);  // Assume strings are <128 B
   (..., (str += to_string_like(args)));
   return str;
 }
@@ -171,18 +168,18 @@ inline bool from_string<bool>(const std::string& str) {
   for (size_t i = 0; i < temp_str.size(); ++i) {
     temp_str[i] = std::tolower(temp_str[i]);
   }
-  if (str == "true") {
+  if (temp_str == "true") {
     return true;
-  } else if (str == "false") {
+  } else if (temp_str == "false") {
     return false;
-  } else if (str == "yes") {
+  } else if (temp_str == "yes") {
     return true;
-  } else if (str == "no") {
+  } else if (temp_str == "no") {
     return false;
   }
 
-  // Check for number values
-  return static_cast<bool>(from_string<int>(str));
+  // Check for numerical values
+  return static_cast<bool>(from_string<int>(temp_str));
 }
 
 // Numeric types
