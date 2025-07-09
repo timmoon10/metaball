@@ -135,6 +135,12 @@ void Camera::adjust_shot(const std::string_view& type,
       amount *= -1;
     }
     aperture_position_ += amount * column_orientation_;
+  } else if (type == "zoom in") {
+    UTIL_CHECK(amount > 0, "Zoom amount must be positive, but got ", amount);
+    focal_length_ *= amount;
+  } else if (type == "zoom out") {
+    UTIL_CHECK(amount > 0, "Zoom amount must be positive, but got ", amount);
+    focal_length_ /= amount;
   } else {
     UTIL_ERROR("Unsupported shot adjustment (", type, ")");
   }
