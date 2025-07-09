@@ -121,8 +121,10 @@ std::string Runner::info_message() const {
 
   // Camera properties
   _("Aperture position: ", camera_.aperture_position());
-  _("Image offset: ", camera_.image_offset());
-  _("Image rotation: ", camera_.image_rotation());
+  _("Aperture orientation: ", camera_.aperture_orientation());
+  _("Row orientation: ", camera_.row_orientation());
+  _("Column orientation: ", camera_.column_orientation());
+  _("Focal length: ", camera_.focal_length());
   _("Film speed: ", camera_.film_speed());
 
   // Return string
@@ -181,20 +183,46 @@ void Runner::process_commands() {
 void Runner::run_command(const std::string_view& name,
                          const std::string_view& params) {
   using ScalarType = Scene::ScalarType;
+
+  // Basic commands
   if (name == "") {
-  } else if (name == "info") {
+    return;
+  }
+  if (name == "info") {
     std::cout << info_message() << std::flush;
-  } else if (name == "exit" || name == "quit") {
+    return;
+  }
+  if (name == "exit" || name == "quit") {
     stop_command_loop();
     QApplication::quit();
-  } else if (name == "reset camera") {
-    camera_ = {};
-  } else if (name == "film speed") {
-    camera_.set_film_speed(util::from_string<ScalarType>(params));
-  } else {
-    throw std::runtime_error(
-        util::concat_strings("Unrecognized command: ", name, "\n"));
+    return;
   }
+
+  // Camera commands
+  if (name == "reset camera") {
+    camera_ = {};
+    return;
+  }
+  if (name == "focal length") {
+    camera_.set_focal_length(util::from_string<ScalarType>(params));
+    return;
+  }
+  if (name == "film speed") {
+    camera_.set_film_speed(util::from_string<ScalarType>(params));
+    return;
+  }
+  for (auto camera_shot_command :
+       {"move forward", "move backward", "move right", "move left", "move up",
+        "move down"}) {
+    if (name == camera_shot_command) {
+      camera_.adjust_shot(name, util::from_string<ScalarType>(params));
+      return;
+    }
+  }
+
+  // Throw exception if command is not supported
+  throw std::runtime_error(
+      util::concat_strings("Unrecognized command: ", name, "\n"));
 }
 
 }  // namespace metaball

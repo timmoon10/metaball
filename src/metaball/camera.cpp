@@ -26,8 +26,9 @@ inline Camera::ScalarType gamma_transfer_function(
 }  // namespace
 
 Camera::Camera() {
-  image_offset_[image_offset_.ndim - 1] = -1;
-  image_rotation_[0] = 1;
+  aperture_orientation_[aperture_orientation_.ndim - 1] = 1;
+  row_orientation_[0] = 1;
+  column_orientation_[1] = -1;
 }
 
 Image Camera::make_image(const Scene& scene, size_t height,
@@ -37,31 +38,29 @@ Image Camera::make_image(const Scene& scene, size_t height,
   UTIL_CHECK(width > 0, "invalid width ", width);
 
   // Spacing between pixels
-  // Note: The image is a unit square that is directly facing the
-  // aperture. The rotation vector is aligned to the pixel rows.
+  // Note: The aperture projects a flipped image onto a unit square
+  // centered at the focal point.
   auto image_size = std::max(height, width);
-  auto shift_x = image_rotation_;
-  shift_x -= util::dot(shift_x, image_offset_) * image_offset_;
+  auto shift_x = -row_orientation_;
   if (shift_x.norm2() > 0) {
     shift_x /= shift_x.norm() * image_size;
   }
-  static_assert(VectorType::ndim == 3);
-  auto shift_y = util::cross(shift_x, image_offset_);
+  auto shift_y = -column_orientation_;
   if (shift_y.norm2() > 0) {
     shift_y /= shift_y.norm() * image_size;
   }
 
   // Position of top-left pixel
-  auto corner_pixel = aperture_position_ + image_offset_;
+  auto corner_pixel =
+      aperture_position_ - focal_length_ * aperture_orientation_;
   corner_pixel += (-static_cast<ScalarType>(width - 1) / 2) * shift_x;
   corner_pixel += (-static_cast<ScalarType>(height - 1) / 2) * shift_y;
 
   // Calculate ray for each pixel
-  // Note: Reflect image horizontally
   Image result(height, width);
   for (size_t i = 0; i < height; ++i) {
     for (size_t j = 0; j < width; ++j) {
-      auto pixel = corner_pixel + i * shift_y + (width - j - 1) * shift_x;
+      auto pixel = corner_pixel + i * shift_y + j * shift_x;
       auto ray = aperture_position_ - pixel;
       auto intensity = scene.trace_ray(aperture_position_, ray, 8, 64);
       result.set(i, j, gamma_transfer_function(intensity * film_speed_));
@@ -74,27 +73,83 @@ Camera::VectorType Camera::aperture_position() const {
   return aperture_position_;
 }
 
-Camera::VectorType Camera::image_offset() const { return image_offset_; }
+Camera::VectorType Camera::aperture_orientation() const {
+  return aperture_orientation_;
+}
 
-Camera::VectorType Camera::image_rotation() const { return image_rotation_; }
+Camera::VectorType Camera::row_orientation() const { return row_orientation_; }
+
+Camera::VectorType Camera::column_orientation() const {
+  return column_orientation_;
+}
+
+Camera::ScalarType Camera::focal_length() const { return focal_length_; }
 
 Camera::ScalarType Camera::film_speed() const { return film_speed_; }
 
-void Camera::set_aperture_position(
-    const Camera::VectorType& aperture_position) {
-  aperture_position_ = aperture_position;
+void Camera::set_aperture_position(const Camera::VectorType& position) {
+  aperture_position_ = position;
 }
 
-void Camera::set_image_offset(const Camera::VectorType& image_offset) {
-  image_offset_ = image_offset;
+void Camera::set_aperture_orientation(const Camera::VectorType& orientation) {
+  aperture_orientation_ = orientation;
+  orthogonalize_orientation();
 }
 
-void Camera::set_image_rotation(const Camera::VectorType& image_rotation) {
-  image_rotation_ = image_rotation;
+void Camera::set_row_orientation(const Camera::VectorType& orientation) {
+  row_orientation_ = orientation;
+  orthogonalize_orientation();
+}
+
+void Camera::set_column_orientation(const Camera::VectorType& orientation) {
+  column_orientation_ = orientation;
+  orthogonalize_orientation();
+}
+
+void Camera::set_focal_length(const Camera::ScalarType& focal_length) {
+  UTIL_CHECK(focal_length > 0, "Focal length must be positive, but got ",
+             focal_length);
+  focal_length_ = focal_length;
 }
 
 void Camera::set_film_speed(const Camera::ScalarType& film_speed) {
+  UTIL_CHECK(film_speed >= 0, "Film speed must be non-negative, but got ",
+             film_speed);
   film_speed_ = film_speed;
+}
+
+void Camera::adjust_shot(const std::string_view& type,
+                         Camera::ScalarType amount) {
+  if (type == "move forward" || type == "move backward") {
+    if (type == "move backward") {
+      amount *= -1;
+    }
+    aperture_position_ += amount * aperture_orientation_;
+  } else if (type == "move right" || type == "move left") {
+    if (type == "move left") {
+      amount *= -1;
+    }
+    aperture_position_ += amount * row_orientation_;
+  } else if (type == "move up" || type == "move down") {
+    if (type == "move up") {
+      amount *= -1;
+    }
+    aperture_position_ += amount * column_orientation_;
+  } else {
+    UTIL_ERROR("Unsupported shot adjustment (", type, ")");
+  }
+  orthogonalize_orientation();
+}
+
+void Camera::orthogonalize_orientation() {
+  auto& x1 = aperture_orientation_;
+  auto& x2 = row_orientation_;
+  auto& x3 = column_orientation_;
+  x1 = x1.unit();
+  x2 -= util::dot(x1, x2) * x1;
+  x2 = x2.unit();
+  x3 -= util::dot(x1, x3) * x1 + util::dot(x2, x3) * x2;
+  x3 = x3.unit();
 }
 
 }  // namespace metaball

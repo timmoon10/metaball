@@ -12,12 +12,12 @@
   } while (false)
 
 // Throw an exception if an expression evaluates to false
-#define UTIL_CHECK(expr, ...)                                      \
-  do {                                                             \
-    if (!(expr)) {                                                 \
-      UTIL_ERROR("Assertion failed (" #expr ")" __VA_OPT__(". ", ) \
-                     __VA_ARGS__);                                 \
-    }                                                              \
+#define UTIL_CHECK(expr, ...)                                       \
+  do {                                                              \
+    if (!(expr)) {                                                  \
+      UTIL_ERROR("Assertion failed (" #expr ")" __VA_OPT__(" - ", ) \
+                     __VA_ARGS__);                                  \
+    }                                                               \
   } while (false)
 
 // Print a message to stderr
