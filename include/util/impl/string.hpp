@@ -114,32 +114,30 @@ concept IsStringLike =
 }  // namespace string
 }  // namespace impl
 
-// String-like types
-template <typename T>
-  requires(impl::string::IsStringLike<T>)
-inline T from_string(const std::string& str) {
-  if constexpr (std::same_as<T, const char*>) {
-    return str.c_str();
-  } else {
-    return str;
-  }
+// string
+template <>
+inline std::string from_string<std::string>(const std::string_view& str) {
+  return std::string(str);
+}
+
+// string_view
+template <>
+inline std::string_view from_string<std::string_view>(
+    const std::string_view& str) {
+  return str;
 }
 
 // bool
 template <>
-inline bool from_string<bool>(const std::string& str) {
+inline bool from_string<bool>(const std::string_view& str) {
   // Check for string values
   auto temp_str = std::string(strip(str));
   for (size_t i = 0; i < temp_str.size(); ++i) {
     temp_str[i] = std::tolower(temp_str[i]);
   }
-  if (temp_str == "true") {
+  if (temp_str == "true" || temp_str == "yes" || temp_str == "on") {
     return true;
-  } else if (temp_str == "false") {
-    return false;
-  } else if (temp_str == "yes") {
-    return true;
-  } else if (temp_str == "no") {
+  } else if (temp_str == "false" || temp_str == "no" || temp_str == "off") {
     return false;
   }
 
@@ -159,6 +157,12 @@ inline T from_string(const std::string& str) {
              "Invalid conversion from string (type=", typeid(T).name(),
              ", string=\"", str, "\")");
   return value;
+}
+template <typename T>
+  requires(impl::string::HasInsertionOperator<T> &&
+           !impl::string::IsStringLike<T> && !std::same_as<T, bool>)
+inline T from_string(const std::string_view& str) {
+  return from_string<T>(std::string(str));
 }
 
 }  // namespace util

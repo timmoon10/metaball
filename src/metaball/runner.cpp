@@ -173,21 +173,24 @@ void Runner::process_commands() {
       }
     }
   }
+
+  // Update display
+  update();
 }
 
 void Runner::run_command(const std::string_view& name,
                          const std::string_view& params) {
-  (void)params;  /// TODO Handle params
+  using ScalarType = Scene::ScalarType;
   if (name == "") {
   } else if (name == "info") {
     std::cout << info_message() << std::flush;
   } else if (name == "exit" || name == "quit") {
     stop_command_loop();
     QApplication::quit();
+  } else if (name == "reset camera") {
+    camera_ = {};
   } else if (name == "film speed") {
-    const auto val = util::from_string<Camera::ScalarType>(std::string(params));
-    camera_.set_film_speed(val);
-    update();
+    camera_.set_film_speed(util::from_string<ScalarType>(params));
   } else {
     throw std::runtime_error(
         util::concat_strings("Unrecognized command: ", name, "\n"));
