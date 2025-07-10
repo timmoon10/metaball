@@ -16,6 +16,18 @@ namespace metaball {
 
 namespace {
 
+/*! @brief Rotate two orthonormal vectors within their spanning plane */
+template <size_t N, typename T>
+void rotate_plane_basis(util::Vector<N, T>& x, util::Vector<N, T>& y,
+                        const T& degrees) {
+  auto rads = degrees * (std::numbers::pi / 180);
+  auto sin = std::sin(rads);
+  auto cos = std::cos(rads);
+  auto x_tmp = cos * x + sin * y;
+  y = -sin * x + cos * y;
+  x = x_tmp;
+}
+
 /*! @brief Gamma 2.2 opto-electronic transfer function
  *
  * Convert light intensity to electrical signal. Approximates sRGB
@@ -157,8 +169,17 @@ void Camera::adjust_shot(const std::string_view& type,
     if (type == "rotate up") {
       amount *= -1;
     }
-    amount *= std::numbers::pi / 180;
-    /// TODO Implement
+    rotate_plane_basis(aperture_orientation_, column_orientation_, amount);
+  } else if (type == "rotate left" || type == "rotate right") {
+    if (type == "rotate left") {
+      amount *= -1;
+    }
+    rotate_plane_basis(aperture_orientation_, row_orientation_, amount);
+  } else if (type == "rotate clockwise" || type == "rotate counterclockwise") {
+    if (type == "rotate counterclockwise") {
+      amount *= -1;
+    }
+    rotate_plane_basis(row_orientation_, column_orientation_, amount);
   } else {
     UTIL_ERROR("Unsupported shot adjustment (", type, ")");
   }
@@ -168,8 +189,13 @@ void Camera::adjust_shot(const std::string_view& type,
 
 bool Camera::is_adjust_shot_type(const std::string_view& type) {
   static std::unordered_set<std::string> types = {
-      "move forward", "move backward", "move right", "move left",
-      "move up",      "move down",     "zoom in",    "zoom out"};
+      "move forward",     "move backward",
+      "move right",       "move left",
+      "move up",          "move down",
+      "zoom in",          "zoom out",
+      "rotate up",        "rotate down",
+      "rotate left",      "rotate right",
+      "rotate clockwise", "rotate counterclockwise"};
   return types.count(std::string(type)) > 0;
 }
 
