@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <concepts>
 
 namespace util {
 
@@ -94,6 +95,11 @@ constexpr T dot(const Vector<N, T>& a, const Vector<N, T>& b) noexcept;
 template <size_t N, typename T>
 constexpr Vector<N, T> cross(const Vector<N, T>& a,
                              const Vector<N, T>& b) noexcept;
+
+/*! \brief Convert vectors to orthonormal basis */
+template <size_t N, typename T, typename... VectorTypes>
+  requires(std::same_as<VectorTypes, Vector<N, T>> && ...)
+void make_orthonormal(VectorTypes&... vector);
 
 }  // namespace util
 

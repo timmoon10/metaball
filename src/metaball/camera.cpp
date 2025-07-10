@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 #include <string>
 #include <string_view>
 #include <unordered_set>
@@ -99,17 +100,20 @@ void Camera::set_aperture_position(const Camera::VectorType& position) {
 
 void Camera::set_aperture_orientation(const Camera::VectorType& orientation) {
   aperture_orientation_ = orientation;
-  orthogonalize_orientation();
+  util::make_orthonormal(column_orientation_, row_orientation_,
+                         aperture_orientation_);
 }
 
 void Camera::set_row_orientation(const Camera::VectorType& orientation) {
   row_orientation_ = orientation;
-  orthogonalize_orientation();
+  util::make_orthonormal(column_orientation_, aperture_orientation_,
+                         row_orientation_);
 }
 
 void Camera::set_column_orientation(const Camera::VectorType& orientation) {
   column_orientation_ = orientation;
-  orthogonalize_orientation();
+  util::make_orthonormal(row_orientation_, aperture_orientation_,
+                         column_orientation_);
 }
 
 void Camera::set_focal_length(const Camera::ScalarType& focal_length) {
@@ -126,6 +130,8 @@ void Camera::set_film_speed(const Camera::ScalarType& film_speed) {
 
 void Camera::adjust_shot(const std::string_view& type,
                          Camera::ScalarType amount) {
+  util::make_orthonormal(column_orientation_, row_orientation_,
+                         aperture_orientation_);
   if (type == "move forward" || type == "move backward") {
     if (type == "move backward") {
       amount *= -1;
@@ -147,10 +153,17 @@ void Camera::adjust_shot(const std::string_view& type,
   } else if (type == "zoom out") {
     UTIL_CHECK(amount > 0, "Zoom amount must be positive, but got ", amount);
     focal_length_ /= amount;
+  } else if (type == "rotate up" || type == "rotate down") {
+    if (type == "rotate up") {
+      amount *= -1;
+    }
+    amount *= std::numbers::pi / 180;
+    /// TODO Implement
   } else {
     UTIL_ERROR("Unsupported shot adjustment (", type, ")");
   }
-  orthogonalize_orientation();
+  util::make_orthonormal(column_orientation_, row_orientation_,
+                         aperture_orientation_);
 }
 
 bool Camera::is_adjust_shot_type(const std::string_view& type) {
@@ -158,17 +171,6 @@ bool Camera::is_adjust_shot_type(const std::string_view& type) {
       "move forward", "move backward", "move right", "move left",
       "move up",      "move down",     "zoom in",    "zoom out"};
   return types.count(std::string(type)) > 0;
-}
-
-void Camera::orthogonalize_orientation() {
-  auto& x1 = aperture_orientation_;
-  auto& x2 = row_orientation_;
-  auto& x3 = column_orientation_;
-  x1 = x1.unit();
-  x2 -= util::dot(x1, x2) * x1;
-  x2 = x2.unit();
-  x3 -= util::dot(x1, x3) * x1 + util::dot(x2, x3) * x2;
-  x3 = x3.unit();
 }
 
 }  // namespace metaball

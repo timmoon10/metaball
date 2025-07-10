@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <concepts>
 
 #include "util/error.hpp"
 
@@ -238,6 +239,19 @@ inline constexpr Vector<N, T> cross(const Vector<N, T>& a,
   result[1] = a[2] * b[0] - a[0] * b[2];
   result[2] = a[0] * b[1] - a[1] * b[0];
   return result;
+}
+
+inline void make_orthonormal() {}
+
+template <size_t N, typename T, typename... VectorTypes>
+  requires(std::same_as<VectorTypes, Vector<N, T>> && ...)
+inline void make_orthonormal(Vector<N, T>& head, VectorTypes&... tail) {
+  static_assert(sizeof...(tail) + 1 <= N,
+                "Can't make orthonormal basis since number of vectors is "
+                "larger than vector dimension");
+  make_orthonormal(tail...);
+  ((head -= util::dot(tail, head) * tail), ...);
+  head = head.unit();
 }
 
 }  // namespace util

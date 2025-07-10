@@ -41,8 +41,6 @@ class Camera {
 
   ScalarType focal_length_ = 1;
   ScalarType film_speed_ = 1;
-
-  void orthogonalize_orientation();
 };
 
 }  // namespace metaball
