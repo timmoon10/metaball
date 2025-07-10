@@ -211,13 +211,9 @@ void Runner::run_command(const std::string_view& name,
     camera_.set_film_speed(util::from_string<ScalarType>(params));
     return;
   }
-  for (auto camera_shot_command :
-       {"move forward", "move backward", "move right", "move left", "move up",
-        "move down", "zoom in", "zoom out"}) {
-    if (name == camera_shot_command) {
-      camera_.adjust_shot(name, util::from_string<ScalarType>(params));
-      return;
-    }
+  if (Camera::is_adjust_shot_type(name)) {
+    camera_.adjust_shot(name, util::from_string<ScalarType>(params));
+    return;
   }
 
   // Throw exception if command is not supported

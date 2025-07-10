@@ -1,5 +1,11 @@
 #include "metaball/camera.hpp"
 
+#include <algorithm>
+#include <cmath>
+#include <string>
+#include <string_view>
+#include <unordered_set>
+
 #include "metaball/image.hpp"
 #include "metaball/scene.hpp"
 #include "util/error.hpp"
@@ -145,6 +151,13 @@ void Camera::adjust_shot(const std::string_view& type,
     UTIL_ERROR("Unsupported shot adjustment (", type, ")");
   }
   orthogonalize_orientation();
+}
+
+bool Camera::is_adjust_shot_type(const std::string_view& type) {
+  static std::unordered_set<std::string> types = {
+      "move forward", "move backward", "move right", "move left",
+      "move up",      "move down",     "zoom in",    "zoom out"};
+  return types.count(std::string(type)) > 0;
 }
 
 void Camera::orthogonalize_orientation() {

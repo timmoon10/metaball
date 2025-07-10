@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string_view>
+
 #include "metaball/image.hpp"
 #include "metaball/scene.hpp"
 
@@ -28,7 +30,8 @@ class Camera {
   void set_focal_length(const ScalarType& focal_length);
   void set_film_speed(const ScalarType& film_speed);
 
-  void adjust_shot(const std::string_view& type, Camera::ScalarType amount);
+  void adjust_shot(const std::string_view& type, ScalarType amount);
+  static bool is_adjust_shot_type(const std::string_view& type);
 
  private:
   VectorType aperture_position_;
