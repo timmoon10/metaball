@@ -54,9 +54,16 @@ util::Vector<N, T> make_randn() {
 }  // namespace
 
 Scene::Scene() {
-  for (size_t i = 0; i < 3; ++i) {
-    const VectorType source = make_randn<ndim, ScalarType>();
-    add_element(std::make_unique<RadialSceneElement>(source));
+  // for (size_t i = 0; i < 3; ++i) {
+  //   const VectorType source = make_randn<ndim, ScalarType>();
+  //   add_element(std::make_unique<RadialSceneElement>(source));
+  // }
+  {
+    std::vector<VectorType> coeffs;
+    for (size_t i = 0; i < 3; ++i) {
+      coeffs.emplace_back(make_randn<ndim, ScalarType>());
+    }
+    add_element(std::make_unique<PolynomialSceneElement>(coeffs, 1.0));
   }
 }
 
@@ -119,6 +126,23 @@ RadialSceneElement::RadialSceneElement(
 RadialSceneElement::ScalarType RadialSceneElement::operator()(
     const RadialSceneElement::VectorType& position) const {
   return 1 / (1 + (position - center_).norm2());
+}
+
+PolynomialSceneElement::PolynomialSceneElement(
+    std::vector<PolynomialSceneElement::VectorType> coefficients,
+    const PolynomialSceneElement::ScalarType constant)
+    : coefficients_{std::move(coefficients)}, constant_{constant} {}
+
+PolynomialSceneElement::ScalarType PolynomialSceneElement::operator()(
+    const PolynomialSceneElement::VectorType& position) const {
+  ScalarType result = 1;
+  for (const auto& coeffs : coefficients_) {
+    result *= util::dot(position, coeffs);
+  }
+  result += constant_;
+  result *= std::exp(-position.norm2() / 2);
+  result = std::abs(result);
+  return result;
 }
 
 }  // namespace metaball

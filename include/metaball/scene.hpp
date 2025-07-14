@@ -52,4 +52,16 @@ class RadialSceneElement : public SceneElement {
   VectorType center_;
 };
 
+class PolynomialSceneElement : public SceneElement {
+ public:
+  PolynomialSceneElement(std::vector<VectorType> coefficients,
+                         const ScalarType constant);
+
+  ScalarType operator()(const VectorType& position) const;
+
+ private:
+  std::vector<VectorType> coefficients_;
+  ScalarType constant_;
+};
+
 }  // namespace metaball
