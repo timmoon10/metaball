@@ -45,6 +45,7 @@ inline Camera::ScalarType gamma_transfer_function(
 }  // namespace
 
 Camera::Camera() {
+  aperture_position_[aperture_orientation_.ndim - 1] = -4;
   aperture_orientation_[aperture_orientation_.ndim - 1] = 1;
   row_orientation_[0] = 1;
   column_orientation_[1] = -1;
@@ -81,7 +82,7 @@ Image Camera::make_image(const Scene& scene, size_t height,
     for (size_t j = 0; j < width; ++j) {
       auto pixel = corner_pixel + i * shift_y + j * shift_x;
       auto ray = aperture_position_ - pixel;
-      auto intensity = scene.trace_ray(aperture_position_, ray, 8, 64);
+      auto intensity = scene.trace_ray(aperture_position_, ray, 16, 128);
       result.set(i, j, gamma_transfer_function(intensity * film_speed_));
     }
   }

@@ -216,6 +216,12 @@ void Runner::run_command(const std::string_view& name,
     return;
   }
 
+  // Scene commands
+  if (name == "reset scene") {
+    scene_ = {};
+    return;
+  }
+
   // Throw exception if command is not supported
   throw std::runtime_error(
       util::concat_strings("Unrecognized command: ", name, "\n"));
