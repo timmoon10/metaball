@@ -54,6 +54,9 @@ class Vector {
   /*! \brief Cast to underlying data container */
   constexpr operator ContainerType() const noexcept;
 
+  /*! \brief Number of vector dimensions */
+  static constexpr size_t size() noexcept;
+
   /*! \brief Set all vector elements to value */
   constexpr void fill(const Scalar& value) noexcept;
   /*! \brief Set all vector elements to zero */

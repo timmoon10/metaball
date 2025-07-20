@@ -63,7 +63,7 @@ Scene::Scene() {
     for (size_t i = 0; i < 3; ++i) {
       coeffs.emplace_back(make_randn<ndim, ScalarType>());
     }
-    add_element(std::make_unique<PolynomialSceneElement>(coeffs, 1.0));
+    add_element(std::make_unique<PolynomialSceneElement>(coeffs));
   }
 }
 
@@ -130,18 +130,25 @@ RadialSceneElement::ScalarType RadialSceneElement::operator()(
 
 PolynomialSceneElement::PolynomialSceneElement(
     std::vector<PolynomialSceneElement::VectorType> coefficients,
-    const PolynomialSceneElement::ScalarType constant)
-    : coefficients_{std::move(coefficients)}, constant_{constant} {}
+    const VectorType& center)
+    : coefficients_{std::move(coefficients)}, center_{center} {}
 
 PolynomialSceneElement::ScalarType PolynomialSceneElement::operator()(
     const PolynomialSceneElement::VectorType& position) const {
+  // Compute polynomial variables
+  VectorType vars = position - center_;
+  for (size_t i = 0; i < vars.size(); ++i) {
+    auto& x = vars[i];
+    x = x / (1 + x * x * x * x);
+  }
+
+  // Evaluate polynomial
   ScalarType result = 1;
   for (const auto& coeffs : coefficients_) {
-    result *= util::dot(position, coeffs);
+    result *= util::dot(coeffs, vars);
   }
-  result += constant_;
-  result *= std::exp(-position.norm2() / 2);
   result = std::abs(result);
+
   return result;
 }
 

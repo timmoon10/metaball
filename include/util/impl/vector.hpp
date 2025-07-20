@@ -157,6 +157,11 @@ inline constexpr Vector<N, T>::operator Vector<N, T>::ContainerType()
 }
 
 template <size_t N, typename T>
+inline constexpr size_t Vector<N, T>::size() noexcept {
+  return ndim;
+}
+
+template <size_t N, typename T>
 inline constexpr void Vector<N, T>::fill(const T& value) noexcept {
   data_.fill(value);
 }
