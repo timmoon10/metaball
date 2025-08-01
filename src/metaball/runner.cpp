@@ -1,19 +1,25 @@
 #include "metaball/runner.hpp"
 
 #include <QApplication>
+#include <QMouseEvent>
 #include <QPaintEvent>
 #include <QPainter>
 #include <QTimer>
 #include <Qt>
 #include <QtWidgets>
+#include <array>
 #include <chrono>
 #include <iostream>
 #include <mutex>
+#include <optional>
+#include <ostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <thread>
+#include <utility>
+#include <vector>
 
 #include "metaball/camera.hpp"
 #include "metaball/image.hpp"
@@ -34,6 +40,7 @@ namespace metaball {
 Runner::Runner(QWidget* parent) : QWidget(parent) {
   // Initialize window
   setWindowTitle("metaball");
+  setMouseTracking(true);
 
   // Initialize timer for processing commands
   connect(&command_processing_timer_, &QTimer::timeout, this,
@@ -132,6 +139,38 @@ std::string Runner::info_message() const {
   return ss.str();
 }
 
+void Runner::mousePressEvent(QMouseEvent* event) {
+  if (event->button() == Qt::LeftButton) {
+    const auto position = event->position();
+    const auto x = position.x();
+    const auto y = position.y();
+    if (0 <= x && x < width() && 0 <= y && y < height()) {
+      const std::array<size_t, 2> position_uint = {static_cast<size_t>(y),
+                                                   static_cast<size_t>(x)};
+      update_camera_drag(true, position_uint, true);
+    }
+  }
+}
+
+void Runner::mouseReleaseEvent(QMouseEvent* event) {
+  if (event->button() == Qt::LeftButton) {
+    update_camera_drag(false, std::nullopt, false);
+  }
+}
+
+void Runner::mouseMoveEvent(QMouseEvent* event) {
+  if (camera_drag_enabled_) {
+    const auto position = event->position();
+    const auto x = position.x();
+    const auto y = position.y();
+    if (0 <= x && x < width() && 0 <= y && y < height()) {
+      const std::array<size_t, 2> position_uint = {static_cast<size_t>(y),
+                                                   static_cast<size_t>(x)};
+      update_camera_drag(std::nullopt, position_uint, false);
+    }
+  }
+}
+
 void Runner::paintEvent(QPaintEvent*) {
   // Initialize painter
   QPainter painter(this);
@@ -225,6 +264,37 @@ void Runner::run_command(const std::string_view& name,
   // Throw exception if command is not supported
   throw std::runtime_error(
       util::concat_strings("Unrecognized command: ", name, "\n"));
+}
+
+void Runner::update_camera_drag(
+    const std::optional<bool>& enabled,
+    const std::optional<std::array<size_t, 2>>& pixel,
+    bool update_camera_drag_orientation) {
+  // Update camera drag state
+  if (enabled) {
+    camera_drag_enabled_ = *enabled;
+  }
+  if (pixel) {
+    camera_drag_pixel_ = *pixel;
+  }
+  if (update_camera_drag_orientation) {
+    camera_drag_orientation_ = camera_.pixel_orientation(
+        camera_drag_pixel_[0], camera_drag_pixel_[1], height(), width());
+  }
+
+  // Nothing to be done if not enabled
+  if (!camera_drag_enabled_) {
+    return;
+  }
+
+  // Update camera orientation if needed
+  if (!update_camera_drag_orientation) {
+    camera_.set_pixel_orientation(camera_drag_pixel_[0], camera_drag_pixel_[1],
+                                  height(), width(), camera_drag_orientation_);
+  }
+
+  // Update display
+  update();
 }
 
 }  // namespace metaball

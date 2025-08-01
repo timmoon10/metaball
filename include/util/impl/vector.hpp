@@ -198,9 +198,9 @@ inline bool Vector<N, T>::isfinite() const noexcept {
 
 template <size_t N, typename T>
 inline Vector<N, T> Vector<N, T>::unit() const {
-  const auto denom = norm();
-  UTIL_CHECK(denom > 0, "Attempted to normalize zero vector");
-  return (*this) / denom;
+  const auto denom_sq = norm2();
+  UTIL_CHECK(denom_sq > 0, "Attempted to normalize zero vector");
+  return (*this) * (1 / std::sqrt(denom_sq));
 }
 
 template <size_t N, typename T>

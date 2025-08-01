@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <string_view>
 
 #include "metaball/image.hpp"
@@ -30,6 +31,11 @@ class Camera {
   void set_focal_length(const ScalarType& focal_length);
   void set_film_speed(const ScalarType& film_speed);
 
+  VectorType pixel_orientation(size_t row, size_t col, size_t height,
+                               size_t width) const;
+  void set_pixel_orientation(size_t row, size_t col, size_t height,
+                             size_t width, const VectorType& orientation);
+
   void adjust_shot(const std::string_view& type, ScalarType amount);
   static bool is_adjust_shot_type(const std::string_view& type);
 
@@ -41,6 +47,9 @@ class Camera {
 
   ScalarType focal_length_ = 1;
   ScalarType film_speed_ = 1;
+
+  std::array<VectorType, 3> corner_pixel_and_offsets(size_t height,
+                                                     size_t width) const;
 };
 
 }  // namespace metaball
