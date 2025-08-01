@@ -1,5 +1,7 @@
 #include "metaball/camera.hpp"
 
+#include <omp.h>
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -60,8 +62,12 @@ Camera::Camera() {
 Image Camera::make_image(const Scene& scene, size_t height,
                          size_t width) const {
   Image result(height, width);
-  const auto [corner_pixel, shift_x, shift_y] =
+  const auto corner_pixel_and_offsets_ =
       corner_pixel_and_offsets(height, width);
+  const auto& corner_pixel = corner_pixel_and_offsets_[0];
+  const auto& shift_x = corner_pixel_and_offsets_[1];
+  const auto& shift_y = corner_pixel_and_offsets_[2];
+#pragma omp parallel for
   for (size_t i = 0; i < height; ++i) {
     for (size_t j = 0; j < width; ++j) {
       auto pixel = corner_pixel + i * shift_y + j * shift_x;
