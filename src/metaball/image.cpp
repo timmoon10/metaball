@@ -50,7 +50,8 @@ Image::operator QImage() const {
 }
 
 void Image::normalize() {
-  const auto [min_it, max_it] = std::minmax_element(data_.begin(), data_.end());
+  const auto [min_it, max_it] =
+      std::minmax_element(data_.cbegin(), data_.cend());
   auto min = *min_it;
   auto max = *max_it;
   DataType scale = (max > min) ? 1 / (max - min) : 0;

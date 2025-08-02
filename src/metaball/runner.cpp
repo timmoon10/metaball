@@ -1,6 +1,7 @@
 #include "metaball/runner.hpp"
 
 #include <QApplication>
+#include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPaintEvent>
 #include <QPainter>
@@ -85,7 +86,7 @@ void Runner::start_command_loop() {
   });
 
   // Start processing commands
-  command_processing_timer_.start(10);  // 10 ms frequency
+  command_processing_timer_.start(timer_interval);
 }
 
 void Runner::stop_command_loop() {
@@ -134,9 +135,36 @@ std::string Runner::info_message() const {
   _("Focal length: ", camera_.focal_length());
   _("Film speed: ", camera_.film_speed());
 
+  // Runner properties
+  _("Movement speed: ", movement_speed_);
+
   // Return string
   ss << std::endl;
   return ss.str();
+}
+
+void Runner::keyPressEvent(QKeyEvent* event) {
+  switch (event->key()) {
+    case Qt::Key_W:
+      movement_active_modes_.insert(MovementMode::Forward);
+      movement_step();
+      break;
+    case Qt::Key_S:
+      movement_active_modes_.insert(MovementMode::Backward);
+      movement_step();
+      break;
+  }
+}
+
+void Runner::keyReleaseEvent(QKeyEvent* event) {
+  switch (event->key()) {
+    case Qt::Key_W:
+      movement_active_modes_.erase(MovementMode::Forward);
+      break;
+    case Qt::Key_S:
+      movement_active_modes_.erase(MovementMode::Backward);
+      break;
+  }
 }
 
 void Runner::mousePressEvent(QMouseEvent* event) {
@@ -159,16 +187,24 @@ void Runner::mouseReleaseEvent(QMouseEvent* event) {
 }
 
 void Runner::mouseMoveEvent(QMouseEvent* event) {
-  if (camera_drag_enabled_) {
+  do {
+    if (!camera_drag_enabled_) {
+      break;
+    }
     const auto position = event->position();
     const auto x = position.x();
     const auto y = position.y();
-    if (0 <= x && x < width() && 0 <= y && y < height()) {
-      const std::array<size_t, 2> position_uint = {static_cast<size_t>(y),
-                                                   static_cast<size_t>(x)};
-      update_camera_drag(std::nullopt, position_uint, false);
+    if (0 > x || x >= width() || 0 > y || y >= height()) {
+      break;
     }
-  }
+    const std::array<size_t, 2> position_uint = {static_cast<size_t>(y),
+                                                 static_cast<size_t>(x)};
+    if (position_uint == camera_drag_pixel_) {
+      break;
+    }
+    update_camera_drag(std::nullopt, position_uint, false);
+    update();
+  } while (false);
 }
 
 void Runner::paintEvent(QPaintEvent*) {
@@ -292,6 +328,40 @@ void Runner::update_camera_drag(
     camera_.set_pixel_orientation(camera_drag_pixel_[0], camera_drag_pixel_[1],
                                   height(), width(), camera_drag_orientation_);
   }
+}
+
+void Runner::movement_step() {
+  // Return immediately if there is no movement
+  if (movement_active_modes_.empty()) {
+    return;
+  }
+
+  // Resolve conflicting movement modes
+  auto modes = movement_active_modes_;
+  if (modes.contains(MovementMode::Forward) &&
+      modes.contains(MovementMode::Backward)) {
+    modes.erase(MovementMode::Forward);
+    modes.erase(MovementMode::Backward);
+  }
+  if (modes.empty()) {
+    return;
+  }
+
+  // Camera position and orientation
+  auto position = camera_.aperture_position();
+  auto forward_orientation = camera_.aperture_orientation();
+
+  // Compute movement
+  if (modes.contains(MovementMode::Forward)) {
+    position += forward_orientation * (movement_speed_ * timer_interval / 1000);
+  }
+  if (modes.contains(MovementMode::Backward)) {
+    position -= forward_orientation * (movement_speed_ * timer_interval / 1000);
+  }
+
+  // Update camera
+  camera_.set_aperture_position(position);
+  camera_.set_aperture_orientation(forward_orientation);
 
   // Update display
   update();
