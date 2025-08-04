@@ -8,11 +8,9 @@
 #include <QTimer>
 #include <Qt>
 #include <QtWidgets>
-#include <array>
 #include <chrono>
 #include <iostream>
 #include <mutex>
-#include <optional>
 #include <ostream>
 #include <sstream>
 #include <stdexcept>
@@ -45,7 +43,8 @@ Runner::Runner(QWidget* parent) : QWidget(parent) {
 
   // Initialize timer
   connect(&timer_, &QTimer::timeout, this, &Runner::timer_step);
-  timer_.start(timer_interval);
+  timer_.start(timer_interval_);
+  last_step_time_ = std::chrono::high_resolution_clock::now();
 }
 
 Runner::~Runner() { stop_command_input(); }
@@ -60,7 +59,7 @@ void Runner::start_command_input() {
     while (true) {
       // Wait until command queue is empty
       while (!command_input_queue_.empty()) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(timer_interval));
+        std::this_thread::sleep_for(std::chrono::milliseconds(timer_interval_));
       }
 
       // Stop if loop is disabled
@@ -131,6 +130,7 @@ std::string Runner::info_message() const {
   _("Film speed: ", camera_.film_speed());
 
   // Runner properties
+  _("Timer interval: ", timer_interval_, " ms");
   _("Movement speed: ", movement_speed_);
 
   // Return string
@@ -194,9 +194,23 @@ void Runner::paintEvent(QPaintEvent*) {
 }
 
 void Runner::timer_step() {
+  // Compute time since last step
+  double step_interval =
+      static_cast<double>(timer_interval_) / 1000;  // seconds
+  {
+    const auto current_step_time = std::chrono::high_resolution_clock::now();
+    const std::chrono::duration<double> measured_duration =
+        current_step_time - last_step_time_;
+    step_interval = std::max(step_interval, measured_duration.count());
+    last_step_time_ = current_step_time;
+  }
+
+  // Timer step stages
   timer_step_command_input();
   timer_step_camera_drag();
-  timer_step_movement();
+  timer_step_movement(step_interval);
+
+  // Update display if needed
   if (display_needs_update_) {
     update();
     display_needs_update_ = false;
@@ -258,7 +272,7 @@ void Runner::timer_step_camera_drag() {
   display_needs_update_ = true;
 }
 
-void Runner::timer_step_movement() {
+void Runner::timer_step_movement(double step_interval) {
   // Return immediately if there is no movement
   if (movement_active_modes_.empty()) {
     return;
@@ -280,11 +294,13 @@ void Runner::timer_step_movement() {
   auto forward_orientation = camera_.aperture_orientation();
 
   // Compute movement
+  const auto movement_distance =
+      static_cast<Camera::ScalarType>(movement_speed_ * step_interval);
   if (modes.contains(MovementMode::Forward)) {
-    position += forward_orientation * (movement_speed_ * timer_interval / 1000);
+    position += forward_orientation * movement_distance;
   }
   if (modes.contains(MovementMode::Backward)) {
-    position -= forward_orientation * (movement_speed_ * timer_interval / 1000);
+    position -= forward_orientation * movement_distance;
   }
 
   // Update camera
@@ -334,6 +350,14 @@ void Runner::run_command(const std::string_view& name,
   // Scene commands
   if (name == "reset scene") {
     scene_ = {};
+    return;
+  }
+
+  // Runner commands
+  if (name == "movement speed") {
+    auto val = util::from_string<Camera::ScalarType>(params);
+    UTIL_CHECK(val > 0, "Invalid movement speed (", val, ")");
+    movement_speed_ = val;
     return;
   }
 

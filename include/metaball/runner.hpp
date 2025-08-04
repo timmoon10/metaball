@@ -6,8 +6,8 @@
 #include <QtWidgets>
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <mutex>
-#include <optional>
 #include <queue>
 #include <string>
 #include <string_view>
@@ -45,8 +45,9 @@ class Runner : public QWidget {
   Scene scene_;
   Camera camera_;
 
-  static const size_t timer_interval = 50;  // milliseconds
   QTimer timer_;
+  size_t timer_interval_{50};  // milliseconds
+  std::chrono::high_resolution_clock::time_point last_step_time_;
   bool display_needs_update_{false};
 
   std::atomic<bool> command_input_is_active_{false};
@@ -66,7 +67,7 @@ class Runner : public QWidget {
   void timer_step();
   void timer_step_command_input();
   void timer_step_camera_drag();
-  void timer_step_movement();
+  void timer_step_movement(double step_interval);
 
   void run_command(const std::string_view& command,
                    const std::string_view& params);
