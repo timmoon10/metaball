@@ -43,9 +43,8 @@ Runner::Runner(QWidget* parent) : QWidget(parent) {
   setWindowTitle("metaball");
   setMouseTracking(true);
 
-  // Initialize timer for processing commands
-  connect(&command_processing_timer_, &QTimer::timeout, this,
-          &Runner::process_commands);
+  // Initialize timer
+  connect(&timer_, &QTimer::timeout, this, &Runner::timer_step);
 }
 
 void Runner::start_command_loop() {
@@ -86,7 +85,7 @@ void Runner::start_command_loop() {
   });
 
   // Start processing commands
-  command_processing_timer_.start(timer_interval);
+  timer_.start(timer_interval);
 }
 
 void Runner::stop_command_loop() {
@@ -98,7 +97,7 @@ void Runner::stop_command_loop() {
   command_input_loop_ = {};
 
   // Stop processing commands
-  command_processing_timer_.stop();
+  timer_.stop();
 
   // Reset command queue
   {
@@ -217,7 +216,7 @@ void Runner::paintEvent(QPaintEvent*) {
   painter.drawImage(0, 0, image);
 }
 
-void Runner::process_commands() {
+void Runner::timer_step() {
   // Return immediately if nothing to be done
   if (command_queue_.empty()) {
     return;

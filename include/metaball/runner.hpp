@@ -45,12 +45,12 @@ class Runner : public QWidget {
   Camera camera_;
 
   static const size_t timer_interval{50};  // 50 ms
+  QTimer timer_;
 
   std::queue<std::string> command_queue_;
   std::mutex command_queue_mutex_;
   std::thread command_input_loop_;
   std::atomic<bool> command_input_loop_is_active_{false};
-  QTimer command_processing_timer_;
 
   bool camera_drag_enabled_{false};
   std::array<size_t, 2> camera_drag_pixel_{0, 0};
@@ -60,7 +60,7 @@ class Runner : public QWidget {
   Camera::ScalarType movement_speed_{1};
   std::unordered_set<MovementMode> movement_active_modes_;
 
-  void process_commands();
+  void timer_step();
 
   void run_command(const std::string_view& command,
                    const std::string_view& params);
