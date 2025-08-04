@@ -131,6 +131,16 @@ void Camera::set_film_speed(const Camera::ScalarType& film_speed) {
   film_speed_ = film_speed;
 }
 
+void Camera::set_orientation(const Camera::VectorType& aperture_orientation,
+                             const Camera::VectorType& row_orientation,
+                             const Camera::VectorType& column_orientation) {
+  aperture_orientation_ = aperture_orientation;
+  row_orientation_ = row_orientation;
+  column_orientation_ = column_orientation;
+  util::make_orthonormal(column_orientation_, row_orientation_,
+                         aperture_orientation_);
+}
+
 Camera::VectorType Camera::pixel_orientation(size_t row, size_t col,
                                              size_t height,
                                              size_t width) const {

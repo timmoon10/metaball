@@ -140,11 +140,21 @@ std::string Runner::info_message() const {
 
 void Runner::keyPressEvent(QKeyEvent* event) {
   switch (event->key()) {
+    case Qt::Key_Escape:
+      stop_command_input();
+      QApplication::quit();
+      break;
     case Qt::Key_W:
       movement_active_modes_.insert(MovementMode::Forward);
       break;
     case Qt::Key_S:
       movement_active_modes_.insert(MovementMode::Backward);
+      break;
+    case Qt::Key_A:
+      movement_active_modes_.insert(MovementMode::Left);
+      break;
+    case Qt::Key_D:
+      movement_active_modes_.insert(MovementMode::Right);
       break;
   }
 }
@@ -156,6 +166,12 @@ void Runner::keyReleaseEvent(QKeyEvent* event) {
       break;
     case Qt::Key_S:
       movement_active_modes_.erase(MovementMode::Backward);
+      break;
+    case Qt::Key_A:
+      movement_active_modes_.erase(MovementMode::Left);
+      break;
+    case Qt::Key_D:
+      movement_active_modes_.erase(MovementMode::Right);
       break;
   }
 }
@@ -285,6 +301,11 @@ void Runner::timer_step_movement(double step_interval) {
     modes.erase(MovementMode::Forward);
     modes.erase(MovementMode::Backward);
   }
+  if (modes.contains(MovementMode::Left) &&
+      modes.contains(MovementMode::Right)) {
+    modes.erase(MovementMode::Left);
+    modes.erase(MovementMode::Right);
+  }
   if (modes.empty()) {
     return;
   }
@@ -292,6 +313,8 @@ void Runner::timer_step_movement(double step_interval) {
   // Camera position and orientation
   auto position = camera_.aperture_position();
   auto forward_orientation = camera_.aperture_orientation();
+  auto right_orientation = camera_.row_orientation();
+  auto down_orientation = camera_.column_orientation();
 
   // Compute movement
   const auto movement_distance =
@@ -302,10 +325,17 @@ void Runner::timer_step_movement(double step_interval) {
   if (modes.contains(MovementMode::Backward)) {
     position -= forward_orientation * movement_distance;
   }
+  if (modes.contains(MovementMode::Left)) {
+    position -= right_orientation * movement_distance;
+  }
+  if (modes.contains(MovementMode::Right)) {
+    position += right_orientation * movement_distance;
+  }
 
   // Update camera
   camera_.set_aperture_position(position);
-  camera_.set_aperture_orientation(forward_orientation);
+  camera_.set_orientation(forward_orientation, right_orientation,
+                          down_orientation);
 
   // Update display
   display_needs_update_ = true;

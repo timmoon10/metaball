@@ -31,6 +31,10 @@ class Camera {
   void set_focal_length(const ScalarType& focal_length);
   void set_film_speed(const ScalarType& film_speed);
 
+  void set_orientation(const VectorType& aperture_orientation,
+                       const VectorType& row_orientation,
+                       const VectorType& column_orientation);
+
   VectorType pixel_orientation(size_t row, size_t col, size_t height,
                                size_t width) const;
   void set_pixel_orientation(size_t row, size_t col, size_t height,
