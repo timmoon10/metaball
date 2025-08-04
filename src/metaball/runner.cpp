@@ -48,9 +48,7 @@ Runner::Runner(QWidget* parent) : QWidget(parent) {
   timer_.start(timer_interval);
 }
 
-Runner::~Runner() {
-  stop_command_input();
-}
+Runner::~Runner() { stop_command_input(); }
 
 void Runner::start_command_input() {
   // Reset command loop state
@@ -144,11 +142,9 @@ void Runner::keyPressEvent(QKeyEvent* event) {
   switch (event->key()) {
     case Qt::Key_W:
       movement_active_modes_.insert(MovementMode::Forward);
-      movement_step();
       break;
     case Qt::Key_S:
       movement_active_modes_.insert(MovementMode::Backward);
-      movement_step();
       break;
   }
 }
@@ -200,7 +196,7 @@ void Runner::mouseMoveEvent(QMouseEvent* event) {
       break;
     }
     update_camera_drag(std::nullopt, position_uint, false);
-    update();
+    display_needs_update_ = true;
   } while (false);
 }
 
@@ -216,6 +212,7 @@ void Runner::paintEvent(QPaintEvent*) {
 
 void Runner::timer_step() {
   command_input_step();
+  movement_step();
   if (display_needs_update_) {
     update();
     display_needs_update_ = false;
@@ -258,8 +255,6 @@ void Runner::command_input_step() {
   // Update display
   display_needs_update_ = true;
 }
-
-
 
 void Runner::run_command(const std::string_view& name,
                          const std::string_view& params) {
@@ -370,7 +365,7 @@ void Runner::movement_step() {
   camera_.set_aperture_orientation(forward_orientation);
 
   // Update display
-  update();
+  display_needs_update_ = true;
 }
 
 }  // namespace metaball
