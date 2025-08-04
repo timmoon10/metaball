@@ -11,8 +11,8 @@ int main(int argc, char* argv[]) {
   runner.show();
   std::cout << runner.help_message() << std::endl;
 
-  // Start command loop
-  runner.start_command_loop();
+  // Start command input
+  runner.start_command_input();
 
   // Start event loop
   return app.exec();

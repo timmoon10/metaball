@@ -45,24 +45,28 @@ Runner::Runner(QWidget* parent) : QWidget(parent) {
 
   // Initialize timer
   connect(&timer_, &QTimer::timeout, this, &Runner::timer_step);
+  timer_.start(timer_interval);
 }
 
-void Runner::start_command_loop() {
+Runner::~Runner() {
+  stop_command_input();
+}
+
+void Runner::start_command_input() {
   // Reset command loop state
-  stop_command_loop();
+  stop_command_input();
 
   // Launch thread with command input loop
-  command_input_loop_is_active_ = true;
+  command_input_is_active_ = true;
   command_input_loop_ = std::thread([this] {
     while (true) {
       // Wait until command queue is empty
-      while (!command_queue_.empty()) {
-        using namespace std::chrono_literals;
-        std::this_thread::sleep_for(10ms);
+      while (!command_input_queue_.empty()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(timer_interval));
       }
 
       // Stop if loop is disabled
-      if (!this->command_input_loop_is_active_) {
+      if (!this->command_input_is_active_) {
         return;
       }
 
@@ -72,37 +76,31 @@ void Runner::start_command_loop() {
       std::getline(std::cin, commands);
 
       // Stop if loop is disabled
-      if (!this->command_input_loop_is_active_) {
+      if (!this->command_input_is_active_) {
         return;
       }
 
       // Push command to queue
       {
-        std::lock_guard<std::mutex> guard(command_queue_mutex_);
-        command_queue_.push(std::move(commands));
+        std::lock_guard<std::mutex> guard(command_input_queue_mutex_);
+        command_input_queue_.push(std::move(commands));
       }
     }
   });
-
-  // Start processing commands
-  timer_.start(timer_interval);
 }
 
-void Runner::stop_command_loop() {
+void Runner::stop_command_input() {
   // Join thread with command input loop
-  command_input_loop_is_active_ = false;
+  command_input_is_active_ = false;
   if (command_input_loop_.joinable()) {
     command_input_loop_.join();
   }
   command_input_loop_ = {};
 
-  // Stop processing commands
-  timer_.stop();
-
   // Reset command queue
   {
-    std::lock_guard<std::mutex> guard(command_queue_mutex_);
-    command_queue_ = {};
+    std::lock_guard<std::mutex> guard(command_input_queue_mutex_);
+    command_input_queue_ = {};
   }
 }
 
@@ -217,31 +215,38 @@ void Runner::paintEvent(QPaintEvent*) {
 }
 
 void Runner::timer_step() {
+  command_input_step();
+  if (display_needs_update_) {
+    update();
+    display_needs_update_ = false;
+  }
+}
+
+void Runner::command_input_step() {
   // Return immediately if nothing to be done
-  if (command_queue_.empty()) {
+  if (command_input_queue_.empty()) {
     return;
   }
 
   // Read from command queue
-  std::vector<std::string> command_queue_copy;
+  std::vector<std::string> input_lines;
   {
-    std::lock_guard<std::mutex> guard(command_queue_mutex_);
-    for (; !command_queue_.empty(); command_queue_.pop()) {
-      command_queue_copy.push_back(std::move(command_queue_.front()));
+    std::lock_guard<std::mutex> guard(command_input_queue_mutex_);
+    for (; !command_input_queue_.empty(); command_input_queue_.pop()) {
+      input_lines.push_back(std::move(command_input_queue_.front()));
     }
   }
 
   // Parse and run commands
-  for (const auto& commands : command_queue_copy) {
-    for (const auto& command : util::split(commands, ";")) {
-      auto parsed_command = util::split(command, "=", 2);
-      UTIL_CHECK(parsed_command.size() >= 1, "error parsing command (", command,
-                 ")");
-      UTIL_CHECK(parsed_command.size() <= 2, "error parsing command (", command,
-                 ")");
-      const auto& name = util::strip(parsed_command[0]);
-      const auto& params =
-          parsed_command.size() > 1 ? util::strip(parsed_command[1]) : "";
+  for (const auto& input_line : input_lines) {
+    for (const auto& unparsed_command : util::split(input_line, ";")) {
+      auto command = util::split(unparsed_command, "=", 2);
+      UTIL_CHECK(command.size() >= 1, "error parsing command (",
+                 unparsed_command, ")");
+      UTIL_CHECK(command.size() <= 2, "error parsing command (",
+                 unparsed_command, ")");
+      const auto& name = util::strip(command[0]);
+      const auto& params = command.size() > 1 ? util::strip(command[1]) : "";
       try {
         run_command(name, params);
       } catch (const std::exception& err) {
@@ -251,8 +256,10 @@ void Runner::timer_step() {
   }
 
   // Update display
-  update();
+  display_needs_update_ = true;
 }
+
+
 
 void Runner::run_command(const std::string_view& name,
                          const std::string_view& params) {
@@ -267,7 +274,7 @@ void Runner::run_command(const std::string_view& name,
     return;
   }
   if (name == "exit" || name == "quit") {
-    stop_command_loop();
+    stop_command_input();
     QApplication::quit();
     return;
   }

@@ -22,9 +22,10 @@ namespace metaball {
 class Runner : public QWidget {
  public:
   Runner(QWidget* parent = nullptr);
+  ~Runner() override;
 
-  void start_command_loop();
-  void stop_command_loop();
+  void start_command_input();
+  void stop_command_input();
 
   /*! GUI user guide */
   std::string help_message() const;
@@ -44,13 +45,14 @@ class Runner : public QWidget {
   Scene scene_;
   Camera camera_;
 
-  static const size_t timer_interval{50};  // 50 ms
+  static const size_t timer_interval = 50;  // milliseconds
   QTimer timer_;
+  bool display_needs_update_{false};
 
-  std::queue<std::string> command_queue_;
-  std::mutex command_queue_mutex_;
+  std::atomic<bool> command_input_is_active_{false};
   std::thread command_input_loop_;
-  std::atomic<bool> command_input_loop_is_active_{false};
+  std::queue<std::string> command_input_queue_;
+  std::mutex command_input_queue_mutex_;
 
   bool camera_drag_enabled_{false};
   std::array<size_t, 2> camera_drag_pixel_{0, 0};
@@ -61,6 +63,8 @@ class Runner : public QWidget {
   std::unordered_set<MovementMode> movement_active_modes_;
 
   void timer_step();
+
+  void command_input_step();
 
   void run_command(const std::string_view& command,
                    const std::string_view& params);
