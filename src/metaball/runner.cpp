@@ -9,8 +9,10 @@
 #include <Qt>
 #include <QtWidgets>
 #include <chrono>
+#include <cmath>
 #include <iostream>
 #include <mutex>
+#include <numbers>
 #include <ostream>
 #include <sstream>
 #include <stdexcept>
@@ -156,6 +158,12 @@ void Runner::keyPressEvent(QKeyEvent* event) {
     case Qt::Key_D:
       movement_active_modes_.insert(MovementMode::Right);
       break;
+    case Qt::Key_Q:
+      movement_active_modes_.insert(MovementMode::Counterclockwise);
+      break;
+    case Qt::Key_E:
+      movement_active_modes_.insert(MovementMode::Clockwise);
+      break;
   }
 }
 
@@ -172,6 +180,12 @@ void Runner::keyReleaseEvent(QKeyEvent* event) {
       break;
     case Qt::Key_D:
       movement_active_modes_.erase(MovementMode::Right);
+      break;
+    case Qt::Key_Q:
+      movement_active_modes_.erase(MovementMode::Counterclockwise);
+      break;
+    case Qt::Key_E:
+      movement_active_modes_.erase(MovementMode::Clockwise);
       break;
   }
 }
@@ -306,6 +320,11 @@ void Runner::timer_step_movement(double step_interval) {
     modes.erase(MovementMode::Left);
     modes.erase(MovementMode::Right);
   }
+  if (modes.contains(MovementMode::Clockwise) &&
+      modes.contains(MovementMode::Counterclockwise)) {
+    modes.erase(MovementMode::Clockwise);
+    modes.erase(MovementMode::Counterclockwise);
+  }
   if (modes.empty()) {
     return;
   }
@@ -316,7 +335,11 @@ void Runner::timer_step_movement(double step_interval) {
   auto right_orientation = camera_.row_orientation();
   auto down_orientation = camera_.column_orientation();
 
-  // Compute movement
+  // Changing orientation or image configuration will invalidate
+  // camera drag state
+  bool camera_drag_is_invalidated = false;
+
+  // Translations
   const auto movement_distance =
       static_cast<Camera::ScalarType>(movement_speed_ * step_interval);
   if (modes.contains(MovementMode::Forward)) {
@@ -332,10 +355,32 @@ void Runner::timer_step_movement(double step_interval) {
     position += right_orientation * movement_distance;
   }
 
+  // Rotations
+  if (modes.contains(MovementMode::Clockwise) ||
+      modes.contains(MovementMode::Counterclockwise)) {
+    auto rotation = movement_distance * std::numbers::pi;
+    if (modes.contains(MovementMode::Clockwise)) {
+      rotation = -rotation;
+    }
+    const auto sin = std::sin(rotation);
+    const auto cos = std::cos(rotation);
+    const auto tmp_down_orientation =
+        cos * down_orientation + sin * right_orientation;
+    right_orientation = -sin * down_orientation + cos * right_orientation;
+    down_orientation = tmp_down_orientation;
+    camera_drag_is_invalidated = true;
+  }
+
   // Update camera
   camera_.set_aperture_position(position);
   camera_.set_orientation(forward_orientation, right_orientation,
                           down_orientation);
+
+  // Update camera drag state if needed
+  if (camera_drag_enabled_ && camera_drag_is_invalidated) {
+    camera_drag_orientation_ = camera_.pixel_orientation(
+        mouse_position_[0], mouse_position_[1], height(), width());
+  }
 
   // Update display
   display_needs_update_ = true;

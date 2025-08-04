@@ -29,9 +29,9 @@ T degrees_to_radians(const T& degrees) {
 template <size_t N, typename T>
 void rotate_plane_basis(util::Vector<N, T>& x, util::Vector<N, T>& y,
                         const T& radians) {
-  auto sin = std::sin(radians);
-  auto cos = std::cos(radians);
-  auto x_tmp = cos * x + sin * y;
+  const auto sin = std::sin(radians);
+  const auto cos = std::cos(radians);
+  const auto x_tmp = cos * x + sin * y;
   y = -sin * x + cos * y;
   x = x_tmp;
 }

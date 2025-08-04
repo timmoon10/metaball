@@ -60,7 +60,14 @@ class Runner : public QWidget {
   std::array<size_t, 2> mouse_position_{0, 0};
   std::array<size_t, 2> last_step_mouse_position_{0, 0};
 
-  enum class MovementMode { Forward, Backward, Left, Right };
+  enum class MovementMode {
+    Forward,
+    Backward,
+    Left,
+    Right,
+    Clockwise,
+    Counterclockwise
+  };
   Camera::ScalarType movement_speed_{1};
   std::unordered_set<MovementMode> movement_active_modes_;
 
