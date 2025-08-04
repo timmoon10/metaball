@@ -55,25 +55,22 @@ class Runner : public QWidget {
   std::mutex command_input_queue_mutex_;
 
   bool camera_drag_enabled_{false};
-  std::array<size_t, 2> camera_drag_pixel_{0, 0};
   Camera::VectorType camera_drag_orientation_;
+  std::array<size_t, 2> mouse_position_{0, 0};
+  std::array<size_t, 2> last_step_mouse_position_{0, 0};
 
   enum class MovementMode { Forward, Backward };
   Camera::ScalarType movement_speed_{1};
   std::unordered_set<MovementMode> movement_active_modes_;
 
   void timer_step();
-
-  void command_input_step();
+  void timer_step_command_input();
+  void timer_step_camera_drag();
+  void timer_step_movement();
 
   void run_command(const std::string_view& command,
                    const std::string_view& params);
-
-  void update_camera_drag(const std::optional<bool>& enabled,
-                          const std::optional<std::array<size_t, 2>>& pixel,
-                          bool update_camera_drag_orientation);
-
-  void movement_step();
+  void update_mouse_position(const QMouseEvent& event);
 };
 
 }  // namespace metaball

@@ -161,43 +161,26 @@ void Runner::keyReleaseEvent(QKeyEvent* event) {
 }
 
 void Runner::mousePressEvent(QMouseEvent* event) {
+  update_mouse_position(*event);
   if (event->button() == Qt::LeftButton) {
-    const auto position = event->position();
-    const auto x = position.x();
-    const auto y = position.y();
-    if (0 <= x && x < width() && 0 <= y && y < height()) {
-      const std::array<size_t, 2> position_uint = {static_cast<size_t>(y),
-                                                   static_cast<size_t>(x)};
-      update_camera_drag(true, position_uint, true);
+    if (!camera_drag_enabled_) {
+      camera_drag_enabled_ = true;
+      camera_drag_orientation_ = camera_.pixel_orientation(
+          mouse_position_[0], mouse_position_[1], height(), width());
+      last_step_mouse_position_ = mouse_position_;
     }
   }
 }
 
 void Runner::mouseReleaseEvent(QMouseEvent* event) {
+  update_mouse_position(*event);
   if (event->button() == Qt::LeftButton) {
-    update_camera_drag(false, std::nullopt, false);
+    camera_drag_enabled_ = false;
   }
 }
 
 void Runner::mouseMoveEvent(QMouseEvent* event) {
-  do {
-    if (!camera_drag_enabled_) {
-      break;
-    }
-    const auto position = event->position();
-    const auto x = position.x();
-    const auto y = position.y();
-    if (0 > x || x >= width() || 0 > y || y >= height()) {
-      break;
-    }
-    const std::array<size_t, 2> position_uint = {static_cast<size_t>(y),
-                                                 static_cast<size_t>(x)};
-    if (position_uint == camera_drag_pixel_) {
-      break;
-    }
-    update_camera_drag(std::nullopt, position_uint, false);
-    display_needs_update_ = true;
-  } while (false);
+  update_mouse_position(*event);
 }
 
 void Runner::paintEvent(QPaintEvent*) {
@@ -211,15 +194,16 @@ void Runner::paintEvent(QPaintEvent*) {
 }
 
 void Runner::timer_step() {
-  command_input_step();
-  movement_step();
+  timer_step_command_input();
+  timer_step_camera_drag();
+  timer_step_movement();
   if (display_needs_update_) {
     update();
     display_needs_update_ = false;
   }
 }
 
-void Runner::command_input_step() {
+void Runner::timer_step_command_input() {
   // Return immediately if nothing to be done
   if (command_input_queue_.empty()) {
     return;
@@ -251,6 +235,61 @@ void Runner::command_input_step() {
       }
     }
   }
+
+  // Update display
+  display_needs_update_ = true;
+}
+
+void Runner::timer_step_camera_drag() {
+  // Return immediately if update is not needed
+  if (!camera_drag_enabled_) {
+    return;
+  }
+  if (mouse_position_ == last_step_mouse_position_) {
+    return;
+  }
+
+  // Update cached mouse position
+  last_step_mouse_position_ = mouse_position_;
+
+  // Update camera orientation
+  camera_.set_pixel_orientation(mouse_position_[0], mouse_position_[1],
+                                height(), width(), camera_drag_orientation_);
+  display_needs_update_ = true;
+}
+
+void Runner::timer_step_movement() {
+  // Return immediately if there is no movement
+  if (movement_active_modes_.empty()) {
+    return;
+  }
+
+  // Resolve conflicting movement modes
+  auto modes = movement_active_modes_;
+  if (modes.contains(MovementMode::Forward) &&
+      modes.contains(MovementMode::Backward)) {
+    modes.erase(MovementMode::Forward);
+    modes.erase(MovementMode::Backward);
+  }
+  if (modes.empty()) {
+    return;
+  }
+
+  // Camera position and orientation
+  auto position = camera_.aperture_position();
+  auto forward_orientation = camera_.aperture_orientation();
+
+  // Compute movement
+  if (modes.contains(MovementMode::Forward)) {
+    position += forward_orientation * (movement_speed_ * timer_interval / 1000);
+  }
+  if (modes.contains(MovementMode::Backward)) {
+    position -= forward_orientation * (movement_speed_ * timer_interval / 1000);
+  }
+
+  // Update camera
+  camera_.set_aperture_position(position);
+  camera_.set_aperture_orientation(forward_orientation);
 
   // Update display
   display_needs_update_ = true;
@@ -303,69 +342,13 @@ void Runner::run_command(const std::string_view& name,
       util::concat_strings("Unrecognized command: ", name, "\n"));
 }
 
-void Runner::update_camera_drag(
-    const std::optional<bool>& enabled,
-    const std::optional<std::array<size_t, 2>>& pixel,
-    bool update_camera_drag_orientation) {
-  // Update camera drag state
-  if (enabled) {
-    camera_drag_enabled_ = *enabled;
+void Runner::update_mouse_position(const QMouseEvent& event) {
+  const auto& position = event.position();
+  const auto& x = position.x();
+  const auto& y = position.y();
+  if (0 <= x && x < width() && 0 <= y && y < height()) {
+    mouse_position_ = {static_cast<size_t>(y), static_cast<size_t>(x)};
   }
-  if (pixel) {
-    camera_drag_pixel_ = *pixel;
-  }
-  if (update_camera_drag_orientation) {
-    camera_drag_orientation_ = camera_.pixel_orientation(
-        camera_drag_pixel_[0], camera_drag_pixel_[1], height(), width());
-  }
-
-  // Nothing to be done if not enabled
-  if (!camera_drag_enabled_) {
-    return;
-  }
-
-  // Update camera orientation if needed
-  if (!update_camera_drag_orientation) {
-    camera_.set_pixel_orientation(camera_drag_pixel_[0], camera_drag_pixel_[1],
-                                  height(), width(), camera_drag_orientation_);
-  }
-}
-
-void Runner::movement_step() {
-  // Return immediately if there is no movement
-  if (movement_active_modes_.empty()) {
-    return;
-  }
-
-  // Resolve conflicting movement modes
-  auto modes = movement_active_modes_;
-  if (modes.contains(MovementMode::Forward) &&
-      modes.contains(MovementMode::Backward)) {
-    modes.erase(MovementMode::Forward);
-    modes.erase(MovementMode::Backward);
-  }
-  if (modes.empty()) {
-    return;
-  }
-
-  // Camera position and orientation
-  auto position = camera_.aperture_position();
-  auto forward_orientation = camera_.aperture_orientation();
-
-  // Compute movement
-  if (modes.contains(MovementMode::Forward)) {
-    position += forward_orientation * (movement_speed_ * timer_interval / 1000);
-  }
-  if (modes.contains(MovementMode::Backward)) {
-    position -= forward_orientation * (movement_speed_ * timer_interval / 1000);
-  }
-
-  // Update camera
-  camera_.set_aperture_position(position);
-  camera_.set_aperture_orientation(forward_orientation);
-
-  // Update display
-  display_needs_update_ = true;
 }
 
 }  // namespace metaball
