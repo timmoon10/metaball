@@ -60,8 +60,15 @@ Scene::Scene() {
   // }
   {
     std::vector<VectorType> coeffs;
-    for (size_t i = 0; i < 3; ++i) {
-      coeffs.emplace_back(make_randn<ndim, ScalarType>());
+    for (size_t i = 0; i < 5; ++i) {
+      auto coeff = make_randn<ndim, ScalarType>();
+      ScalarType scale = 0;
+      for (size_t j = 0; j < ndim; ++j) {
+        scale += std::abs(coeff[j]);
+      }
+      scale *= 0.25;
+      coeff /= scale;
+      coeffs.emplace_back(coeff);
     }
     add_element(std::make_unique<PolynomialSceneElement>(coeffs));
   }
@@ -90,8 +97,7 @@ void Scene::remove_element(size_t idx) {
   elements_.erase(elements_.begin() + idx);
 }
 
-Scene::ScalarType Scene::compute_density(
-    const Scene::VectorType& position) const {
+Scene::ScalarType Scene::compute_density(const VectorType& position) const {
   ScalarType result = 0;
   for (const auto& element : elements_) {
     result += (*element)(position);
@@ -100,9 +106,9 @@ Scene::ScalarType Scene::compute_density(
   return result;
 }
 
-Scene::ScalarType Scene::trace_ray(const Scene::VectorType& origin,
-                                   const Scene::VectorType& orientation,
-                                   const Scene::ScalarType& max_distance,
+Scene::ScalarType Scene::trace_ray(const VectorType& origin,
+                                   const VectorType& orientation,
+                                   const ScalarType& max_distance,
                                    size_t num_evals) const {
   // Trapezoid rule
   UTIL_CHECK(orientation.norm2() > 0, "Invalid orientation (",
@@ -119,27 +125,26 @@ Scene::ScalarType Scene::trace_ray(const Scene::VectorType& origin,
   return result;
 }
 
-RadialSceneElement::RadialSceneElement(
-    const RadialSceneElement::VectorType& center)
+RadialSceneElement::RadialSceneElement(const VectorType& center)
     : center_{center} {}
 
 RadialSceneElement::ScalarType RadialSceneElement::operator()(
-    const RadialSceneElement::VectorType& position) const {
+    const VectorType& position) const {
   return 1 / (1 + (position - center_).norm2());
 }
 
 PolynomialSceneElement::PolynomialSceneElement(
-    std::vector<PolynomialSceneElement::VectorType> coefficients,
-    const VectorType& center)
+    std::vector<VectorType> coefficients, const VectorType& center)
     : coefficients_{std::move(coefficients)}, center_{center} {}
 
 PolynomialSceneElement::ScalarType PolynomialSceneElement::operator()(
-    const PolynomialSceneElement::VectorType& position) const {
+    const VectorType& position) const {
   // Compute polynomial variables
   VectorType vars = position - center_;
   for (size_t i = 0; i < vars.size(); ++i) {
     auto& x = vars[i];
-    x = x / (1 + x * x * x * x);
+    const auto x2 = x * x;
+    x = x / (1 + x2 * x2);
   }
 
   // Evaluate polynomial
@@ -147,8 +152,6 @@ PolynomialSceneElement::ScalarType PolynomialSceneElement::operator()(
   for (const auto& coeffs : coefficients_) {
     result *= util::dot(coeffs, vars);
   }
-  result = std::abs(result);
-
   return result;
 }
 
