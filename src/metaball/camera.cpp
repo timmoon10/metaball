@@ -97,43 +97,43 @@ Camera::ScalarType Camera::focal_length() const { return focal_length_; }
 
 Camera::ScalarType Camera::film_speed() const { return film_speed_; }
 
-void Camera::set_aperture_position(const Camera::VectorType& position) {
+void Camera::set_aperture_position(const VectorType& position) {
   aperture_position_ = position;
 }
 
-void Camera::set_aperture_orientation(const Camera::VectorType& orientation) {
+void Camera::set_aperture_orientation(const VectorType& orientation) {
   aperture_orientation_ = orientation;
   util::make_orthonormal(column_orientation_, row_orientation_,
                          aperture_orientation_);
 }
 
-void Camera::set_row_orientation(const Camera::VectorType& orientation) {
+void Camera::set_row_orientation(const VectorType& orientation) {
   row_orientation_ = orientation;
   util::make_orthonormal(column_orientation_, aperture_orientation_,
                          row_orientation_);
 }
 
-void Camera::set_column_orientation(const Camera::VectorType& orientation) {
+void Camera::set_column_orientation(const VectorType& orientation) {
   column_orientation_ = orientation;
   util::make_orthonormal(row_orientation_, aperture_orientation_,
                          column_orientation_);
 }
 
-void Camera::set_focal_length(const Camera::ScalarType& focal_length) {
+void Camera::set_focal_length(const ScalarType& focal_length) {
   UTIL_CHECK(focal_length > 0, "Focal length must be positive, but got ",
              focal_length);
   focal_length_ = focal_length;
 }
 
-void Camera::set_film_speed(const Camera::ScalarType& film_speed) {
+void Camera::set_film_speed(const ScalarType& film_speed) {
   UTIL_CHECK(film_speed >= 0, "Film speed must be non-negative, but got ",
              film_speed);
   film_speed_ = film_speed;
 }
 
-void Camera::set_orientation(const Camera::VectorType& aperture_orientation,
-                             const Camera::VectorType& row_orientation,
-                             const Camera::VectorType& column_orientation) {
+void Camera::set_orientation(const VectorType& aperture_orientation,
+                             const VectorType& row_orientation,
+                             const VectorType& column_orientation) {
   aperture_orientation_ = aperture_orientation;
   row_orientation_ = row_orientation;
   column_orientation_ = column_orientation;
@@ -154,7 +154,7 @@ Camera::VectorType Camera::pixel_orientation(size_t row, size_t col,
 
 void Camera::set_pixel_orientation(size_t row, size_t col, size_t height,
                                    size_t width,
-                                   const Camera::VectorType& orientation) {
+                                   const VectorType& orientation) {
   // Check inputs
   UTIL_CHECK(row < height && col < width, "Attempted to access pixel (", row,
              ",", col, ") in image with height ", height, " and width ", width);
@@ -216,8 +216,7 @@ void Camera::set_pixel_orientation(size_t row, size_t col, size_t height,
                          aperture_orientation_);
 }
 
-void Camera::adjust_shot(const std::string_view& type,
-                         Camera::ScalarType amount) {
+void Camera::adjust_shot(const std::string_view& type, ScalarType amount) {
   util::make_orthonormal(column_orientation_, row_orientation_,
                          aperture_orientation_);
   if (type == "move forward" || type == "move backward") {

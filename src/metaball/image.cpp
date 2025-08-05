@@ -14,17 +14,14 @@ size_t Image::height() const noexcept { return height_; }
 
 size_t Image::width() const noexcept { return width_; }
 
-void Image::set(size_t i, size_t j, Image::DataType r, Image::DataType g,
-                Image::DataType b) {
+void Image::set(size_t i, size_t j, DataType r, DataType g, DataType b) {
   const size_t offset = (i * width_ + j) * 3;
   data_[offset] = r;
   data_[offset + 1] = g;
   data_[offset + 2] = b;
 }
 
-void Image::set(size_t i, size_t j, Image::DataType val) {
-  set(i, j, val, val, val);
-}
+void Image::set(size_t i, size_t j, DataType val) { set(i, j, val, val, val); }
 
 std::array<Image::DataType, 3> Image::get(size_t i, size_t j) const {
   const size_t offset = (i * width_ + j) * 3;
