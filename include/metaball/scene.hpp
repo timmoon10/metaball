@@ -66,4 +66,20 @@ class PolynomialSceneElement : public SceneElement {
   ScalarType decay_;
 };
 
+class SinusoidSceneElement : public SceneElement {
+ public:
+  SinusoidSceneElement(const VectorType& wave_vector,
+                       const VectorType& center = {},
+                       const ScalarType& amplitude = 1.0,
+                       const ScalarType& decay = 1.0);
+
+  ScalarType operator()(const VectorType& position) const;
+
+ private:
+  VectorType wave_vector_;
+  VectorType center_;
+  ScalarType amplitude_;
+  ScalarType decay_;
+};
+
 }  // namespace metaball

@@ -1,7 +1,9 @@
 #include "metaball/scene.hpp"
 
 #include <chrono>
+#include <cmath>
 #include <memory>
+#include <numbers>
 #include <random>
 #include <utility>
 
@@ -58,14 +60,21 @@ Scene::Scene() {
   //   const VectorType source = make_randn<ndim, ScalarType>();
   //   add_element(std::make_unique<RadialSceneElement>(source));
   // }
+  // {
+  //   std::vector<VectorType> coeffs;
+  //   for (size_t i = 0; i < 8; ++i) {
+  //     auto coeff = 2 * make_randn<ndim, ScalarType>().unit();
+  //     coeffs.emplace_back(coeff);
+  //   }
+  //   add_element(
+  //       std::make_unique<PolynomialSceneElement>(coeffs, VectorType(), 2));
+  // }
   {
-    std::vector<VectorType> coeffs;
-    for (size_t i = 0; i < 8; ++i) {
-      auto coeff = 2 * make_randn<ndim, ScalarType>().unit();
-      coeffs.emplace_back(coeff);
+    for (size_t i = 0; i < 4; ++i) {
+      auto wave_vector = make_randn<ndim, ScalarType>();
+      add_element(std::make_unique<SinusoidSceneElement>(wave_vector,
+                                                         VectorType(), 1, 0.5));
     }
-    add_element(
-        std::make_unique<PolynomialSceneElement>(coeffs, VectorType(), 2));
   }
 }
 
@@ -140,6 +149,24 @@ PolynomialSceneElement::ScalarType PolynomialSceneElement::operator()(
   for (const auto& coeffs : coefficients_) {
     result *= util::dot(coeffs, offset);
   }
+  return result;
+}
+
+SinusoidSceneElement::SinusoidSceneElement(const VectorType& wave_vector,
+                                           const VectorType& center,
+                                           const ScalarType& amplitude,
+                                           const ScalarType& decay)
+    : wave_vector_{wave_vector},
+      center_{center},
+      amplitude_{amplitude},
+      decay_{decay} {}
+
+SinusoidSceneElement::ScalarType SinusoidSceneElement::operator()(
+    const VectorType& position) const {
+  constexpr ScalarType two_pi = 2 * std::numbers::pi;
+  const auto offset = position - center_;
+  ScalarType result = std::cos(two_pi * util::dot(offset, wave_vector_));
+  result *= amplitude_ * std::exp(-decay_ * offset.norm());
   return result;
 }
 
