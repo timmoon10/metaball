@@ -143,7 +143,7 @@ PolynomialSceneElement::PolynomialSceneElement(
 PolynomialSceneElement::ScalarType PolynomialSceneElement::operator()(
     const VectorType& position) const {
   const auto offset = position - center_;
-  ScalarType result = std::exp(-decay_ * offset.norm());
+  ScalarType result = std::exp(-decay_ * offset.norm2());
   for (const auto& coeffs : coefficients_) {
     result *= util::dot(coeffs, offset);
   }
@@ -164,7 +164,7 @@ SinusoidSceneElement::ScalarType SinusoidSceneElement::operator()(
   constexpr ScalarType two_pi = 2 * std::numbers::pi;
   const auto offset = position - center_;
   ScalarType result = std::cos(two_pi * util::dot(offset, wave_vector_));
-  result *= amplitude_ * std::exp(-decay_ * offset.norm());
+  result *= amplitude_ * std::exp(-decay_ * offset.norm2());
   return result;
 }
 
