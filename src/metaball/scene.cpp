@@ -60,17 +60,12 @@ Scene::Scene() {
   // }
   {
     std::vector<VectorType> coeffs;
-    for (size_t i = 0; i < 5; ++i) {
-      auto coeff = make_randn<ndim, ScalarType>();
-      ScalarType scale = 0;
-      for (size_t j = 0; j < ndim; ++j) {
-        scale += std::abs(coeff[j]);
-      }
-      scale *= 0.25;
-      coeff /= scale;
+    for (size_t i = 0; i < 8; ++i) {
+      auto coeff = 2 * make_randn<ndim, ScalarType>().unit();
       coeffs.emplace_back(coeff);
     }
-    add_element(std::make_unique<PolynomialSceneElement>(coeffs));
+    add_element(
+        std::make_unique<PolynomialSceneElement>(coeffs, VectorType(), 2));
   }
 }
 
@@ -134,23 +129,16 @@ RadialSceneElement::ScalarType RadialSceneElement::operator()(
 }
 
 PolynomialSceneElement::PolynomialSceneElement(
-    std::vector<VectorType> coefficients, const VectorType& center)
-    : coefficients_{std::move(coefficients)}, center_{center} {}
+    std::vector<VectorType> coefficients, const VectorType& center,
+    const ScalarType& decay)
+    : coefficients_{std::move(coefficients)}, center_{center}, decay_{decay} {}
 
 PolynomialSceneElement::ScalarType PolynomialSceneElement::operator()(
     const VectorType& position) const {
-  // Compute polynomial variables
-  VectorType vars = position - center_;
-  for (size_t i = 0; i < vars.size(); ++i) {
-    auto& x = vars[i];
-    const auto x2 = x * x;
-    x = x / (1 + x2 * x2);
-  }
-
-  // Evaluate polynomial
-  ScalarType result = 1;
+  const auto offset = position - center_;
+  ScalarType result = std::exp(-decay_ * offset.norm());
   for (const auto& coeffs : coefficients_) {
-    result *= util::dot(coeffs, vars);
+    result *= util::dot(coeffs, offset);
   }
   return result;
 }
