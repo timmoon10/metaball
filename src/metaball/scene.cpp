@@ -63,17 +63,15 @@ Scene::Scene() {
   // {
   //   std::vector<VectorType> coeffs;
   //   for (size_t i = 0; i < 8; ++i) {
-  //     auto coeff = 2 * make_randn<ndim, ScalarType>().unit();
+  //     auto coeff = make_randn<ndim, ScalarType>();
   //     coeffs.emplace_back(coeff);
   //   }
-  //   add_element(
-  //       std::make_unique<PolynomialSceneElement>(coeffs, VectorType(), 2));
+  //   add_element(std::make_unique<PolynomialSceneElement>(coeffs));
   // }
   {
-    for (size_t i = 0; i < 4; ++i) {
+    for (size_t i = 0; i < 8; ++i) {
       auto wave_vector = make_randn<ndim, ScalarType>();
-      add_element(std::make_unique<SinusoidSceneElement>(wave_vector,
-                                                         VectorType(), 1, 0.5));
+      add_element(std::make_unique<SinusoidSceneElement>(wave_vector));
     }
   }
 }
