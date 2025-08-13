@@ -8,6 +8,7 @@
 #include <atomic>
 #include <chrono>
 #include <mutex>
+#include <optional>
 #include <queue>
 #include <string>
 #include <string_view>
@@ -56,7 +57,7 @@ class Runner : public QWidget {
   std::mutex command_input_queue_mutex_;
 
   bool camera_drag_enabled_{false};
-  Camera::VectorType camera_drag_orientation_;
+  std::optional<Camera::VectorType> camera_drag_orientation_;
   std::array<size_t, 2> mouse_position_{0, 0};
   std::array<size_t, 2> last_step_mouse_position_{0, 0};
 

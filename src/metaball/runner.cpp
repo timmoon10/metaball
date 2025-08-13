@@ -201,9 +201,7 @@ void Runner::mousePressEvent(QMouseEvent* event) {
   if (event->button() == Qt::LeftButton) {
     if (!camera_drag_enabled_) {
       camera_drag_enabled_ = true;
-      camera_drag_orientation_ = camera_.pixel_orientation(
-          mouse_position_[0], mouse_position_[1], height(), width());
-      last_step_mouse_position_ = mouse_position_;
+      camera_drag_orientation_ = std::nullopt;
     }
   }
 }
@@ -212,6 +210,7 @@ void Runner::mouseReleaseEvent(QMouseEvent* event) {
   update_mouse_position(*event);
   if (event->button() == Qt::LeftButton) {
     camera_drag_enabled_ = false;
+    camera_drag_orientation_ = std::nullopt;
   }
 }
 
@@ -303,9 +302,14 @@ void Runner::timer_step_camera_drag() {
   last_step_mouse_position_ = mouse_position_;
 
   // Update camera orientation
-  camera_.set_pixel_orientation(mouse_position_[0], mouse_position_[1],
-                                height(), width(), camera_drag_orientation_);
-  display_needs_update_ = true;
+  if (camera_drag_orientation_) {
+    camera_.set_pixel_orientation(mouse_position_[0], mouse_position_[1],
+                                  height(), width(), *camera_drag_orientation_);
+    display_needs_update_ = true;
+  } else {
+    camera_drag_orientation_ = camera_.pixel_orientation(
+        mouse_position_[0], mouse_position_[1], height(), width());
+  }
 }
 
 void Runner::timer_step_movement(double step_interval) {
