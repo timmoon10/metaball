@@ -427,6 +427,10 @@ void Runner::run_command(const std::string_view& name,
     scene_ = {};
     return;
   }
+  if (name == "add scene") {
+    scene_.add_element(SceneElement::make_element(params));
+    return;
+  }
 
   // Runner commands
   if (name == "movement speed") {

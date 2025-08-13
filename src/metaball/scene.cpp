@@ -5,6 +5,7 @@
 #include <memory>
 #include <numbers>
 #include <random>
+#include <string_view>
 #include <utility>
 
 #include "util/error.hpp"
@@ -55,26 +56,7 @@ util::Vector<N, T> make_randn() {
 
 }  // namespace
 
-Scene::Scene() {
-  // for (size_t i = 0; i < 3; ++i) {
-  //   const VectorType source = make_randn<ndim, ScalarType>();
-  //   add_element(std::make_unique<RadialSceneElement>(source));
-  // }
-  // {
-  //   std::vector<VectorType> coeffs;
-  //   for (size_t i = 0; i < 8; ++i) {
-  //     auto coeff = make_randn<ndim, ScalarType>();
-  //     coeffs.emplace_back(coeff);
-  //   }
-  //   add_element(std::make_unique<PolynomialSceneElement>(coeffs));
-  // }
-  {
-    for (size_t i = 0; i < 8; ++i) {
-      auto wave_vector = make_randn<ndim, ScalarType>();
-      add_element(std::make_unique<SinusoidSceneElement>(wave_vector));
-    }
-  }
-}
+Scene::Scene() {}
 
 void Scene::add_element(std::unique_ptr<SceneElement>&& element) {
   elements_.emplace_back(std::move(element));
@@ -125,6 +107,26 @@ Scene::ScalarType Scene::trace_ray(const VectorType& origin,
   result += compute_density(origin + (num_evals - 1) * grid_shift) / 2;
   result *= grid_size;
   return result;
+}
+
+std::unique_ptr<SceneElement> SceneElement::make_element(
+    const std::string_view& type) {
+  if (type == "radial") {
+    const VectorType source = make_randn<ndim, ScalarType>();
+    return std::make_unique<RadialSceneElement>(source);
+  }
+  if (type == "polynomial") {
+    std::vector<VectorType> coeffs;
+    for (size_t i = 0; i < 8; ++i) {
+      coeffs.emplace_back(make_randn<ndim, ScalarType>());
+    }
+    return std::make_unique<PolynomialSceneElement>(coeffs);
+  }
+  if (type == "sinusoid") {
+    auto wave_vector = make_randn<ndim, ScalarType>();
+    return std::make_unique<SinusoidSceneElement>(wave_vector);
+  }
+  UTIL_ERROR("Unrecognized scene element (", type, ")");
 }
 
 RadialSceneElement::RadialSceneElement(const VectorType& center)

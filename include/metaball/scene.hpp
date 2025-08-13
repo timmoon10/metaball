@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <string_view>
 #include <vector>
 
 #include "util/vector.hpp"
@@ -40,6 +41,9 @@ class SceneElement {
   virtual ~SceneElement() = default;
 
   virtual ScalarType operator()(const VectorType& position) const = 0;
+
+  static std::unique_ptr<SceneElement> make_element(
+      const std::string_view& type);
 };
 
 class RadialSceneElement : public SceneElement {
