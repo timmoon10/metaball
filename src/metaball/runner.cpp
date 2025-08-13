@@ -1,10 +1,12 @@
 #include "metaball/runner.hpp"
 
 #include <QApplication>
+#include <QImage>
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPaintEvent>
 #include <QPainter>
+#include <QString>
 #include <QTimer>
 #include <Qt>
 #include <QtWidgets>
@@ -405,6 +407,15 @@ void Runner::run_command(const std::string_view& name,
   if (name == "exit" || name == "quit") {
     stop_command_input();
     QApplication::quit();
+    return;
+  }
+
+  // Export commands
+  if (name == "save") {
+    auto image = camera_.make_image(scene_, height(), width());
+    const std::string file =
+        params.empty() ? "metaball.png" : std::string(params);
+    static_cast<QImage>(image).save(QString(file.data()));
     return;
   }
 
