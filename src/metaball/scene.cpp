@@ -143,7 +143,11 @@ PolynomialSceneElement::PolynomialSceneElement(
 PolynomialSceneElement::ScalarType PolynomialSceneElement::operator()(
     const VectorType& position) const {
   const auto offset = position - center_;
-  ScalarType result = std::exp(-decay_ * offset.norm2());
+  const auto log_envelope = -decay_ * offset.norm2();
+  if (log_envelope < -16) {
+    return 0;
+  }
+  ScalarType result = std::exp(log_envelope);
   for (const auto& coeffs : coefficients_) {
     result *= util::dot(coeffs, offset);
   }
@@ -161,10 +165,14 @@ SinusoidSceneElement::SinusoidSceneElement(const VectorType& wave_vector,
 
 SinusoidSceneElement::ScalarType SinusoidSceneElement::operator()(
     const VectorType& position) const {
-  constexpr ScalarType two_pi = 2 * std::numbers::pi;
   const auto offset = position - center_;
-  ScalarType result = std::cos(two_pi * util::dot(offset, wave_vector_));
-  result *= amplitude_ * std::exp(-decay_ * offset.norm2());
+  const auto log_envelope = -decay_ * offset.norm2();
+  if (log_envelope < -8) {
+    return 0;
+  }
+  ScalarType result = std::exp(log_envelope);
+  constexpr ScalarType two_pi = 2 * std::numbers::pi;
+  result *= amplitude_ * std::cos(two_pi * util::dot(offset, wave_vector_));
   return result;
 }
 
