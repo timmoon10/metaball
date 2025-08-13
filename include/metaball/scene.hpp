@@ -23,6 +23,8 @@ class Scene {
   const SceneElement& get_element(size_t idx) const;
   void remove_element(size_t idx);
 
+  size_t num_elements() const;
+
   ScalarType compute_density(const VectorType& position) const;
 
   ScalarType trace_ray(const VectorType& origin, const VectorType& orientation,

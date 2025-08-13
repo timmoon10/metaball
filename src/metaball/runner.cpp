@@ -24,6 +24,7 @@
 
 #include "metaball/camera.hpp"
 #include "metaball/image.hpp"
+#include "metaball/scene.hpp"
 #include "util/string.hpp"
 #include "util/vector.hpp"
 
@@ -42,6 +43,9 @@ Runner::Runner(QWidget* parent) : QWidget(parent) {
   // Initialize window
   setWindowTitle("metaball");
   setMouseTracking(true);
+
+  // Initialize scene
+  scene_.add_element(SceneElement::make_element("polynomial"));
 
   // Initialize timer
   connect(&timer_, &QTimer::timeout, this, &Runner::timer_step);
@@ -429,6 +433,16 @@ void Runner::run_command(const std::string_view& name,
   }
   if (name == "add scene") {
     scene_.add_element(SceneElement::make_element(params));
+    return;
+  }
+  if (name == "delete scene") {
+    if (params.empty()) {
+      if (scene_.num_elements() > 0) {
+        scene_.remove_element(scene_.num_elements() - 1);
+      }
+    } else {
+      scene_.remove_element(util::from_string<size_t>(params));
+    }
     return;
   }
 

@@ -81,6 +81,8 @@ void Scene::remove_element(size_t idx) {
   elements_.erase(elements_.begin() + idx);
 }
 
+size_t Scene::num_elements() const { return elements_.size(); }
+
 Scene::ScalarType Scene::compute_density(const VectorType& position) const {
   ScalarType result = 0;
   for (const auto& element : elements_) {
@@ -112,19 +114,21 @@ Scene::ScalarType Scene::trace_ray(const VectorType& origin,
 std::unique_ptr<SceneElement> SceneElement::make_element(
     const std::string_view& type) {
   if (type == "radial") {
-    const VectorType source = make_randn<ndim, ScalarType>();
-    return std::make_unique<RadialSceneElement>(source);
+    const auto center = make_randn<ndim, ScalarType>();
+    return std::make_unique<RadialSceneElement>(center);
   }
   if (type == "polynomial") {
+    const auto center = make_randn<ndim, ScalarType>();
     std::vector<VectorType> coeffs;
     for (size_t i = 0; i < 8; ++i) {
       coeffs.emplace_back(make_randn<ndim, ScalarType>());
     }
-    return std::make_unique<PolynomialSceneElement>(coeffs);
+    return std::make_unique<PolynomialSceneElement>(coeffs, center);
   }
   if (type == "sinusoid") {
-    auto wave_vector = make_randn<ndim, ScalarType>();
-    return std::make_unique<SinusoidSceneElement>(wave_vector);
+    const auto center = make_randn<ndim, ScalarType>();
+    const auto wave_vector = make_randn<ndim, ScalarType>();
+    return std::make_unique<SinusoidSceneElement>(wave_vector, center);
   }
   UTIL_ERROR("Unrecognized scene element (", type, ")");
 }
