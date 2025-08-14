@@ -459,6 +459,18 @@ void Runner::run_command(const std::string_view& name,
     scene_.add_element(SceneElement::make_element(params));
     return;
   }
+  if (name == "remove scene") {
+    size_t idx = 0;
+    if (params.empty()) {
+      if (scene_.num_elements() > 0) {
+        idx = scene_.num_elements() - 1;
+      }
+    } else {
+      idx = util::from_string<size_t>(params);
+    }
+    scene_.remove_element(idx);
+    return;
+  }
   if (name == "delete scene") {
     if (params.empty()) {
       if (scene_.num_elements() > 0) {
