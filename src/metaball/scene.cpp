@@ -118,17 +118,25 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
     return std::make_unique<RadialSceneElement>(center);
   }
   if (type == "polynomial") {
-    const auto center = make_randn<ndim, ScalarType>();
     std::vector<VectorType> coeffs;
     for (size_t i = 0; i < 8; ++i) {
       coeffs.emplace_back(make_randn<ndim, ScalarType>());
     }
+    const auto center = make_randn<ndim, ScalarType>();
     return std::make_unique<PolynomialSceneElement>(coeffs, center);
   }
   if (type == "sinusoid") {
-    const auto center = make_randn<ndim, ScalarType>();
     const auto wave_vector = make_randn<ndim, ScalarType>();
+    const auto center = make_randn<ndim, ScalarType>();
     return std::make_unique<SinusoidSceneElement>(wave_vector, center);
+  }
+  if (type == "multi sinusoid") {
+    std::vector<VectorType> wave_vectors;
+    for (size_t i = 0; i < 8; ++i) {
+      wave_vectors.emplace_back(make_randn<ndim, ScalarType>());
+    }
+    const auto center = make_randn<ndim, ScalarType>();
+    return std::make_unique<MultiSinusoidSceneElement>(wave_vectors, center);
   }
   UTIL_ERROR("Unrecognized scene element (", type, ")");
 }
@@ -178,7 +186,31 @@ SinusoidSceneElement::ScalarType SinusoidSceneElement::operator()(
   }
   ScalarType result = std::exp(log_envelope);
   constexpr ScalarType two_pi = 2 * std::numbers::pi;
-  result *= amplitude_ * std::cos(two_pi * util::dot(offset, wave_vector_));
+  result *= amplitude_ * std::sin(two_pi * util::dot(offset, wave_vector_));
+  return result;
+}
+
+MultiSinusoidSceneElement::MultiSinusoidSceneElement(
+    std::vector<VectorType> wave_vectors, const VectorType& center,
+    const ScalarType& amplitude, const ScalarType& decay)
+    : wave_vectors_{std::move(wave_vectors)},
+      center_{center},
+      amplitude_{amplitude},
+      decay_{decay} {}
+
+MultiSinusoidSceneElement::ScalarType MultiSinusoidSceneElement::operator()(
+    const VectorType& position) const {
+  const auto offset = position - center_;
+  const auto log_envelope = -decay_ * offset.norm2();
+  if (log_envelope < -8) {
+    return 0;
+  }
+  ScalarType result = 0;
+  constexpr ScalarType two_pi = 2 * std::numbers::pi;
+  for (const auto& wave_vector : wave_vectors_) {
+    result += std::sin(two_pi * util::dot(offset, wave_vector));
+  }
+  result *= amplitude_ * std::exp(log_envelope);
   return result;
 }
 

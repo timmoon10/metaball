@@ -88,4 +88,20 @@ class SinusoidSceneElement : public SceneElement {
   ScalarType decay_;
 };
 
+class MultiSinusoidSceneElement : public SceneElement {
+ public:
+  MultiSinusoidSceneElement(std::vector<VectorType> wave_vectors,
+                            const VectorType& center = {},
+                            const ScalarType& amplitude = 1.0,
+                            const ScalarType& decay = 1.0);
+
+  ScalarType operator()(const VectorType& position) const;
+
+ private:
+  std::vector<VectorType> wave_vectors_;
+  VectorType center_;
+  ScalarType amplitude_;
+  ScalarType decay_;
+};
+
 }  // namespace metaball
