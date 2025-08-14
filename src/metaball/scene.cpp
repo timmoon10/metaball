@@ -10,6 +10,7 @@
 
 #include "util/error.hpp"
 #include "util/math.hpp"
+#include "util/string.hpp"
 
 namespace metaball {
 
@@ -112,14 +113,22 @@ Scene::ScalarType Scene::trace_ray(const VectorType& origin,
 }
 
 std::unique_ptr<SceneElement> SceneElement::make_element(
-    const std::string_view& type) {
+    const std::string_view& config) {
+  const auto config_parsed = util::split(config, "=", 2);
+  UTIL_CHECK(config_parsed.size() == 1 || config_parsed.size() == 2,
+             "error parsing config (", config, ")");
+  const auto& type = util::strip(config_parsed[0]);
+  const auto& params =
+      config_parsed.size() > 1 ? util::strip(config_parsed[1]) : "";
   if (type == "radial") {
     const auto center = make_randn<ndim, ScalarType>();
     return std::make_unique<RadialSceneElement>(center);
   }
   if (type == "polynomial") {
+    const size_t degree =
+        params.empty() ? 8 : util::from_string<size_t>(params);
     std::vector<VectorType> coeffs;
-    for (size_t i = 0; i < 8; ++i) {
+    for (size_t i = 0; i < degree; ++i) {
       coeffs.emplace_back(make_randn<ndim, ScalarType>());
     }
     const auto center = make_randn<ndim, ScalarType>();
@@ -131,8 +140,10 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
     return std::make_unique<SinusoidSceneElement>(wave_vector, center);
   }
   if (type == "multi sinusoid") {
+    const size_t num_sinusoids =
+        params.empty() ? 8 : util::from_string<size_t>(params);
     std::vector<VectorType> wave_vectors;
-    for (size_t i = 0; i < 8; ++i) {
+    for (size_t i = 0; i < num_sinusoids; ++i) {
       wave_vectors.emplace_back(make_randn<ndim, ScalarType>());
     }
     const auto center = make_randn<ndim, ScalarType>();

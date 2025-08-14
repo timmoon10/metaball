@@ -270,7 +270,7 @@ void Runner::timer_step_command_input() {
   // Parse and run commands
   for (const auto& input_line : input_lines) {
     for (const auto& unparsed_command : util::split(input_line, ";")) {
-      auto command = util::split(unparsed_command, "=", 2);
+      const auto command = util::split(unparsed_command, "=", 2);
       UTIL_CHECK(command.size() >= 1, "error parsing command (",
                  unparsed_command, ")");
       UTIL_CHECK(command.size() <= 2, "error parsing command (",
