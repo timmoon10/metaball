@@ -5,12 +5,22 @@
 #include <memory>
 #include <numbers>
 #include <random>
+#include <string>
 #include <string_view>
 #include <utility>
 
 #include "util/error.hpp"
 #include "util/math.hpp"
 #include "util/string.hpp"
+
+namespace util {
+
+template <size_t N, typename T>
+inline std::string to_string_like(const Vector<N, T>& val) {
+  return to_string_like(static_cast<Vector<N, T>::ContainerType>(val));
+}
+
+}  // namespace util
 
 namespace metaball {
 
@@ -160,6 +170,10 @@ RadialSceneElement::ScalarType RadialSceneElement::operator()(
   return 1 / (1 + (position - center_).norm2());
 }
 
+std::string RadialSceneElement::describe() const {
+  return util::concat_strings("RadialSceneElement (center=", center_, ")");
+}
+
 PolynomialSceneElement::PolynomialSceneElement(
     std::vector<VectorType> coefficients, const VectorType& center,
     const ScalarType& decay)
@@ -177,6 +191,12 @@ PolynomialSceneElement::ScalarType PolynomialSceneElement::operator()(
     result *= util::dot(coeffs, offset);
   }
   return result;
+}
+
+std::string PolynomialSceneElement::describe() const {
+  return util::concat_strings(
+      "PolynomialSceneElement (coefficients=", coefficients_,
+      ", center=", center_, ", decay=", decay_, ")");
 }
 
 SinusoidSceneElement::SinusoidSceneElement(const VectorType& wave_vector,
@@ -201,6 +221,12 @@ SinusoidSceneElement::ScalarType SinusoidSceneElement::operator()(
   return result;
 }
 
+std::string SinusoidSceneElement::describe() const {
+  return util::concat_strings(
+      "SinusoidSceneElement (wave_vector=", wave_vector_, ", center=", center_,
+      ", amplitude=", amplitude_, ", decay=", decay_, ")");
+}
+
 MultiSinusoidSceneElement::MultiSinusoidSceneElement(
     std::vector<VectorType> wave_vectors, const VectorType& center,
     const ScalarType& amplitude, const ScalarType& decay)
@@ -223,6 +249,13 @@ MultiSinusoidSceneElement::ScalarType MultiSinusoidSceneElement::operator()(
   }
   result *= amplitude_ * std::exp(log_envelope);
   return result;
+}
+
+std::string MultiSinusoidSceneElement::describe() const {
+  return util::concat_strings(
+      "MultiSinusoidSceneElement (wave_vectors=", wave_vectors_,
+      ", center=", center_, ", amplitude=", amplitude_, ", decay=", decay_,
+      ")");
 }
 
 }  // namespace metaball

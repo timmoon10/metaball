@@ -16,7 +16,6 @@
 #include <mutex>
 #include <numbers>
 #include <ostream>
-#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -110,19 +109,23 @@ void Runner::stop_command_input() {
 }
 
 std::string Runner::help_message() const {
-  std::ostringstream ss;
-  auto _ = [&ss](const std::string_view& str) { ss << str << "\n"; };
+  std::string result;
+  auto _ = [&result]<typename... Ts>(const Ts&... args) {
+    (..., (result += util::to_string_like(args)));
+    result += "\n";
+  };
   _("---------------");
   _("|  metaball   |");
   _("---------------");
-  ss << std::flush;
-  return ss.str();
+  _();
+  return result;
 }
 
 std::string Runner::info_message() const {
-  std::ostringstream ss;
-  auto _ = [&ss]<typename... Ts>(const Ts&... args) {
-    ss << util::concat_strings(args...) << "\n";
+  std::string result;
+  auto _ = [&result]<typename... Ts>(const Ts&... args) {
+    (..., (result += util::to_string_like(args)));
+    result += "\n";
   };
 
   // Header
@@ -141,9 +144,15 @@ std::string Runner::info_message() const {
   _("Timer interval: ", timer_interval_, " ms");
   _("Movement speed: ", movement_speed_);
 
+  // Scene properties
+  _("Scene:");
+  for (size_t i = 0; i < scene_.num_elements(); ++i) {
+    _("  ", i, ": ", scene_.get_element(i).describe());
+  }
+
   // Return string
-  ss << std::endl;
-  return ss.str();
+  _();
+  return result;
 }
 
 void Runner::keyPressEvent(QKeyEvent* event) {

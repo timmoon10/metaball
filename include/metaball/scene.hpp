@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -44,6 +45,8 @@ class SceneElement {
 
   virtual ScalarType operator()(const VectorType& position) const = 0;
 
+  virtual std::string describe() const = 0;
+
   static std::unique_ptr<SceneElement> make_element(
       const std::string_view& type);
 };
@@ -53,6 +56,8 @@ class RadialSceneElement : public SceneElement {
   RadialSceneElement(const VectorType& center = {});
 
   ScalarType operator()(const VectorType& position) const;
+
+  std::string describe() const;
 
  private:
   VectorType center_;
@@ -65,6 +70,8 @@ class PolynomialSceneElement : public SceneElement {
                          const ScalarType& decay = 1.0);
 
   ScalarType operator()(const VectorType& position) const;
+
+  std::string describe() const;
 
  private:
   std::vector<VectorType> coefficients_;
@@ -81,6 +88,8 @@ class SinusoidSceneElement : public SceneElement {
 
   ScalarType operator()(const VectorType& position) const;
 
+  std::string describe() const;
+
  private:
   VectorType wave_vector_;
   VectorType center_;
@@ -96,6 +105,8 @@ class MultiSinusoidSceneElement : public SceneElement {
                             const ScalarType& decay = 1.0);
 
   ScalarType operator()(const VectorType& position) const;
+
+  std::string describe() const;
 
  private:
   std::vector<VectorType> wave_vectors_;
