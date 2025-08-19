@@ -49,6 +49,8 @@ template <std::ranges::range T>
 std::string to_string_like(const T& range);
 template <typename T1, typename T2>
 std::string to_string_like(const std::pair<T1, T2>& pair);
+template <typename... Ts>
+std::string to_string_like(const std::tuple<Ts...>& tuple);
 
 template <std::ranges::range T>
 inline std::string to_string_like(const T& range) {
@@ -73,6 +75,18 @@ inline std::string to_string_like(const std::pair<T1, T2>& pair) {
   str += to_string_like(pair.first);
   str += ",";
   str += to_string_like(pair.second);
+  str += "]";
+  return str;
+}
+
+template <typename... Ts>
+inline std::string to_string_like(const std::tuple<Ts...>& tuple) {
+  std::string str;
+  auto entries_to_string = [&]<size_t... Is>(std::index_sequence<Is...>) {
+    (..., ((str += Is > 0 ? "," : "") += to_string_like(std::get<Is>(tuple))));
+  };
+  str += "[";
+  entries_to_string(std::index_sequence_for<Ts...>());
   str += "]";
   return str;
 }

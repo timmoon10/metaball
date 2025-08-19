@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <vector>
 
 #include "util/vector.hpp"
@@ -82,9 +83,10 @@ class PolynomialSceneElement : public SceneElement {
 class SinusoidSceneElement : public SceneElement {
  public:
   SinusoidSceneElement(const VectorType& wave_vector,
+                       const ScalarType& phase = 0.,
                        const VectorType& center = {},
-                       const ScalarType& amplitude = 1.0,
-                       const ScalarType& decay = 1.0);
+                       const ScalarType& amplitude = 1.,
+                       const ScalarType& decay = 1.);
 
   ScalarType operator()(const VectorType& position) const;
 
@@ -92,6 +94,7 @@ class SinusoidSceneElement : public SceneElement {
 
  private:
   VectorType wave_vector_;
+  ScalarType phase_;
   VectorType center_;
   ScalarType amplitude_;
   ScalarType decay_;
@@ -99,17 +102,17 @@ class SinusoidSceneElement : public SceneElement {
 
 class MultiSinusoidSceneElement : public SceneElement {
  public:
-  MultiSinusoidSceneElement(std::vector<VectorType> wave_vectors,
-                            const VectorType& center = {},
-                            const ScalarType& amplitude = 1.0,
-                            const ScalarType& decay = 1.0);
+  MultiSinusoidSceneElement(
+      std::vector<std::tuple<VectorType, ScalarType>> wave_vectors_and_phases,
+      const VectorType& center = {}, const ScalarType& amplitude = 1.,
+      const ScalarType& decay = 1.);
 
   ScalarType operator()(const VectorType& position) const;
 
   std::string describe() const;
 
  private:
-  std::vector<VectorType> wave_vectors_;
+  std::vector<std::tuple<VectorType, ScalarType>> wave_vectors_and_phases_;
   VectorType center_;
   ScalarType amplitude_;
   ScalarType decay_;
