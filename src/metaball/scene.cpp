@@ -159,20 +159,47 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
     const auto wave_vector = make_randn<ndim, ScalarType>();
     const auto phase = make_rand<1, ScalarType>()[0];
     const auto center = make_randn<ndim, ScalarType>();
-    return std::make_unique<SinusoidSceneElement>(wave_vector, phase, center);
+    return std::make_unique<SinusoidSceneElement>(wave_vector, phase, 1.,
+                                                  center);
   }
   if (type == "multi sinusoid") {
     const size_t num_sinusoids =
         params.empty() ? 8 : util::from_string<size_t>(params);
-    std::vector<std::tuple<VectorType, ScalarType>> wave_vectors_and_phases;
+    std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components;
     for (size_t i = 0; i < num_sinusoids; ++i) {
       auto wave_vector = make_randn<ndim, ScalarType>();
       const auto phase = make_rand<1, ScalarType>()[0];
-      wave_vectors_and_phases.emplace_back(wave_vector, phase);
+      const auto amplitude = std::abs(make_randn<1, ScalarType>()[0]);
+      components.emplace_back(wave_vector, phase, amplitude);
     }
     const auto center = make_randn<ndim, ScalarType>();
-    return std::make_unique<MultiSinusoidSceneElement>(wave_vectors_and_phases,
-                                                       center);
+    return std::make_unique<MultiSinusoidSceneElement>(components, center);
+  }
+  if (type == "power law spectrum") {
+    const size_t num_sinusoids =
+        params.empty() ? 8 : util::from_string<size_t>(params);
+    std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components;
+    for (size_t i = 0; i < num_sinusoids; ++i) {
+      // Sample log-frequency from uniform distribution
+      const auto log_frequency = 2 * make_rand<1, ScalarType>()[0] - 1;
+      const auto frequency = std::exp(log_frequency);
+
+      // Amplitude follows power law w.r.t. frequency
+      const auto amplitude = std::pow(frequency, -2);
+
+      // Sample orientation with bias orthogonal to y-axis
+      VectorType orientation;
+      do {
+        orientation = make_randn<ndim, ScalarType>().unit();
+      } while (std::pow(1 - std::abs(orientation[1]), 4) >
+               make_rand<1, ScalarType>()[0]);
+
+      // Construct wave vector and phase
+      auto wave_vector = orientation * frequency;
+      const auto phase = make_rand<1, ScalarType>()[0];
+      components.emplace_back(wave_vector, phase, amplitude);
+    }
+    return std::make_unique<MultiSinusoidSceneElement>(components);
   }
   UTIL_ERROR("Unrecognized scene element (", type, ")");
 }
@@ -216,13 +243,13 @@ std::string PolynomialSceneElement::describe() const {
 
 SinusoidSceneElement::SinusoidSceneElement(const VectorType& wave_vector,
                                            const ScalarType& phase,
-                                           const VectorType& center,
                                            const ScalarType& amplitude,
+                                           const VectorType& center,
                                            const ScalarType& decay)
     : wave_vector_{wave_vector},
       phase_{phase},
-      center_{center},
       amplitude_{amplitude},
+      center_{center},
       decay_{decay} {}
 
 SinusoidSceneElement::ScalarType SinusoidSceneElement::operator()(
@@ -241,18 +268,15 @@ SinusoidSceneElement::ScalarType SinusoidSceneElement::operator()(
 
 std::string SinusoidSceneElement::describe() const {
   return util::concat_strings(
-      "SinusoidSceneElement (wave_vector=", wave_vector_, ", center=", center_,
-      ", phase=", phase_, ", amplitude=", amplitude_, ", decay=", decay_, ")");
+      "SinusoidSceneElement (wave_vector=", wave_vector_, ", phase=", phase_,
+      ", amplitude=", amplitude_, ", center=", center_, ", decay=", decay_,
+      ")");
 }
 
 MultiSinusoidSceneElement::MultiSinusoidSceneElement(
-    std::vector<std::tuple<VectorType, ScalarType>> wave_vectors_and_phases,
-    const VectorType& center, const ScalarType& amplitude,
-    const ScalarType& decay)
-    : wave_vectors_and_phases_{std::move(wave_vectors_and_phases)},
-      center_{center},
-      amplitude_{amplitude},
-      decay_{decay} {}
+    std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components,
+    const VectorType& center, const ScalarType& decay)
+    : components_{std::move(components)}, center_{center}, decay_{decay} {}
 
 MultiSinusoidSceneElement::ScalarType MultiSinusoidSceneElement::operator()(
     const VectorType& position) const {
@@ -263,18 +287,18 @@ MultiSinusoidSceneElement::ScalarType MultiSinusoidSceneElement::operator()(
   }
   ScalarType result = 0;
   constexpr ScalarType two_pi = 2 * std::numbers::pi;
-  for (const auto& [wave_vector, phase] : wave_vectors_and_phases_) {
-    result += std::sin(two_pi * (util::dot(offset, wave_vector) + phase));
+  for (const auto& [wave_vector, phase, amplitude] : components_) {
+    result +=
+        amplitude * std::sin(two_pi * (util::dot(offset, wave_vector) + phase));
   }
-  result *= amplitude_ * std::exp(log_envelope);
+  result *= std::exp(log_envelope);
   return result;
 }
 
 std::string MultiSinusoidSceneElement::describe() const {
   return util::concat_strings(
-      "MultiSinusoidSceneElement (wave_vectors_and_phases=",
-      wave_vectors_and_phases_, ", center=", center_,
-      ", amplitude=", amplitude_, ", decay=", decay_, ")");
+      "MultiSinusoidSceneElement (components=", components_,
+      ", center=", center_, ", decay=", decay_, ")");
 }
 
 }  // namespace metaball

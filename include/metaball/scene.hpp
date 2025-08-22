@@ -84,8 +84,8 @@ class SinusoidSceneElement : public SceneElement {
  public:
   SinusoidSceneElement(const VectorType& wave_vector,
                        const ScalarType& phase = 0.,
-                       const VectorType& center = {},
                        const ScalarType& amplitude = 1.,
+                       const VectorType& center = {},
                        const ScalarType& decay = 1.);
 
   ScalarType operator()(const VectorType& position) const;
@@ -95,26 +95,24 @@ class SinusoidSceneElement : public SceneElement {
  private:
   VectorType wave_vector_;
   ScalarType phase_;
-  VectorType center_;
   ScalarType amplitude_;
+  VectorType center_;
   ScalarType decay_;
 };
 
 class MultiSinusoidSceneElement : public SceneElement {
  public:
   MultiSinusoidSceneElement(
-      std::vector<std::tuple<VectorType, ScalarType>> wave_vectors_and_phases,
-      const VectorType& center = {}, const ScalarType& amplitude = 1.,
-      const ScalarType& decay = 1.);
+      std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components,
+      const VectorType& center = {}, const ScalarType& decay = 1.);
 
   ScalarType operator()(const VectorType& position) const;
 
   std::string describe() const;
 
  private:
-  std::vector<std::tuple<VectorType, ScalarType>> wave_vectors_and_phases_;
+  std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components_;
   VectorType center_;
-  ScalarType amplitude_;
   ScalarType decay_;
 };
 
