@@ -1,16 +1,15 @@
 #include "metaball/scene.hpp"
 
-#include <chrono>
 #include <cmath>
 #include <memory>
 #include <numbers>
-#include <random>
 #include <string>
 #include <string_view>
-#include <thread>
 #include <tuple>
 #include <utility>
+#include <vector>
 
+#include "metaball/random.hpp"
 #include "util/error.hpp"
 #include "util/math.hpp"
 #include "util/string.hpp"
@@ -25,58 +24,6 @@ inline std::string to_string_like(const Vector<N, T>& val) {
 }  // namespace util
 
 namespace metaball {
-
-namespace {
-
-/*! \brief Combine two hash values
- *
- *  See
- * https://www.boost.org/doc/libs/1_55_0/doc/html/hash/reference.html#boost.hash_combine.
- */
-template <class T, class Hash = std::hash<T>>
-size_t hash_combine(size_t seed, const T& val) {
-  return seed ^ (Hash()(val) + 0x9e3779b9 + (seed << 6) + (seed >> 2));
-}
-
-size_t epoch_time_ns() {
-  const auto now = std::chrono::high_resolution_clock::now();
-  const auto epoch_time = now.time_since_epoch();
-  return std::chrono::duration_cast<std::chrono::nanoseconds>(epoch_time)
-      .count();
-}
-
-uint32_t seed() {
-  thread_local static std::random_device dev{};
-  thread_local static size_t last_seed =
-      std::hash<std::thread::id>()(std::this_thread::get_id());
-  last_seed = hash_combine(last_seed, dev());
-  last_seed = hash_combine(last_seed, epoch_time_ns());
-  return static_cast<uint32_t>(last_seed);
-}
-
-template <size_t N, typename T>
-util::Vector<N, T> make_randn() {
-  std::mt19937 gen{seed()};
-  std::normal_distribution dist{};
-  util::Vector<N, T> result;
-  for (size_t i = 0; i < N; ++i) {
-    result[i] = dist(gen);
-  }
-  return result;
-}
-
-template <size_t N, typename T>
-util::Vector<N, T> make_rand() {
-  std::mt19937 gen{seed()};
-  std::uniform_real_distribution dist{};
-  util::Vector<N, T> result;
-  for (size_t i = 0; i < N; ++i) {
-    result[i] = dist(gen);
-  }
-  return result;
-}
-
-}  // namespace
 
 Scene::Scene() {}
 
@@ -142,7 +89,7 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
   const auto& params =
       config_parsed.size() > 1 ? util::strip(config_parsed[1]) : "";
   if (type == "radial") {
-    const auto center = make_randn<ndim, ScalarType>();
+    const auto center = random::randn<VectorType>();
     return std::make_unique<RadialSceneElement>(center);
   }
   if (type == "polynomial") {
@@ -150,15 +97,15 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
         params.empty() ? 8 : util::from_string<size_t>(params);
     std::vector<VectorType> coeffs;
     for (size_t i = 0; i < degree; ++i) {
-      coeffs.emplace_back(make_randn<ndim, ScalarType>());
+      coeffs.emplace_back(random::randn<VectorType>());
     }
-    const auto center = make_randn<ndim, ScalarType>();
+    const auto center = random::randn<VectorType>();
     return std::make_unique<PolynomialSceneElement>(coeffs, center);
   }
   if (type == "sinusoid") {
-    const auto wave_vector = make_randn<ndim, ScalarType>();
-    const auto phase = make_rand<1, ScalarType>()[0];
-    const auto center = make_randn<ndim, ScalarType>();
+    const auto wave_vector = random::randn<VectorType>();
+    const auto phase = random::rand<ScalarType>();
+    const auto center = random::randn<VectorType>();
     return std::make_unique<SinusoidSceneElement>(wave_vector, phase, 1.,
                                                   center);
   }
@@ -167,12 +114,12 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
         params.empty() ? 8 : util::from_string<size_t>(params);
     std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components;
     for (size_t i = 0; i < num_sinusoids; ++i) {
-      auto wave_vector = make_randn<ndim, ScalarType>();
-      const auto phase = make_rand<1, ScalarType>()[0];
-      const auto amplitude = std::abs(make_randn<1, ScalarType>()[0]);
+      auto wave_vector = random::randn<VectorType>();
+      const auto phase = random::rand<ScalarType>();
+      const auto amplitude = std::abs(random::randn<ScalarType>());
       components.emplace_back(wave_vector, phase, amplitude);
     }
-    const auto center = make_randn<ndim, ScalarType>();
+    const auto center = random::randn<VectorType>();
     return std::make_unique<MultiSinusoidSceneElement>(components, center);
   }
   if (type == "power law spectrum") {
@@ -181,7 +128,7 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
     std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components;
     for (size_t i = 0; i < num_sinusoids; ++i) {
       // Sample log-frequency from uniform distribution
-      const auto log_frequency = 2 * make_rand<1, ScalarType>()[0] - 1;
+      const auto log_frequency = 2 * random::rand<ScalarType>() - 1;
       const auto frequency = std::exp(log_frequency);
 
       // Amplitude follows power law w.r.t. frequency
@@ -190,13 +137,13 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
       // Sample orientation with bias orthogonal to y-axis
       VectorType orientation;
       do {
-        orientation = make_randn<ndim, ScalarType>().unit();
+        orientation = random::randn<VectorType>().unit();
       } while (std::pow(1 - std::abs(orientation[1]), 4) >
-               make_rand<1, ScalarType>()[0]);
+               random::rand<ScalarType>());
 
       // Construct wave vector and phase
       auto wave_vector = orientation * frequency;
-      const auto phase = make_rand<1, ScalarType>()[0];
+      const auto phase = random::rand<ScalarType>();
       components.emplace_back(wave_vector, phase, amplitude);
     }
     return std::make_unique<MultiSinusoidSceneElement>(components);
