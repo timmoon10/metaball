@@ -20,6 +20,12 @@ class Scene {
 
   Scene();
 
+  ScalarType density_threshold() const;
+  ScalarType density_threshold_width() const;
+
+  void set_density_threshold(const ScalarType& threshold);
+  void set_density_threshold_width(const ScalarType& width);
+
   void add_element(std::unique_ptr<SceneElement>&& element);
   SceneElement& get_element(size_t idx);
   const SceneElement& get_element(size_t idx) const;
@@ -33,7 +39,11 @@ class Scene {
                        const ScalarType& max_distance, size_t num_evals) const;
 
  private:
+  ScalarType apply_density_threshold(const ScalarType& score) const;
+
   std::vector<std::unique_ptr<SceneElement>> elements_;
+  ScalarType density_threshold_ = 0.25;
+  ScalarType density_threshold_width_ = 0.;
 };
 
 class SceneElement {

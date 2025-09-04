@@ -27,6 +27,22 @@ namespace metaball {
 
 Scene::Scene() {}
 
+Scene::ScalarType Scene::density_threshold() const {
+  return density_threshold_;
+}
+
+Scene::ScalarType Scene::density_threshold_width() const {
+  return density_threshold_width_;
+}
+
+void Scene::set_density_threshold(const ScalarType& threshold) {
+  density_threshold_ = threshold;
+}
+
+void Scene::set_density_threshold_width(const ScalarType& threshold_width) {
+  density_threshold_width_ = threshold_width;
+}
+
 void Scene::add_element(std::unique_ptr<SceneElement>&& element) {
   elements_.emplace_back(std::move(element));
 }
@@ -53,12 +69,19 @@ void Scene::remove_element(size_t idx) {
 size_t Scene::num_elements() const { return elements_.size(); }
 
 Scene::ScalarType Scene::compute_density(const VectorType& position) const {
-  ScalarType result = 0;
+  ScalarType score = 0;
   for (const auto& element : elements_) {
-    result += (*element)(position);
+    score += (*element)(position);
   }
-  result = util::sigmoid(32 * (result - 1));
-  return result;
+  return apply_density_threshold(score);
+}
+
+Scene::ScalarType Scene::apply_density_threshold(
+    const ScalarType& score) const {
+  if (density_threshold_width_ == 0) {
+    return score >= density_threshold_ ? 1. : 0.;
+  }
+  return util::sigmoid((score - density_threshold_) / density_threshold_width_);
 }
 
 Scene::ScalarType Scene::trace_ray(const VectorType& origin,
@@ -116,23 +139,23 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
     for (size_t i = 0; i < num_sinusoids; ++i) {
       auto wave_vector = random::randn<VectorType>();
       const auto phase = random::rand<ScalarType>();
-      const auto amplitude = std::abs(random::randn<ScalarType>());
+      const auto amplitude =
+          std::abs(random::randn<ScalarType>()) / num_sinusoids;
       components.emplace_back(wave_vector, phase, amplitude);
     }
     const auto center = random::randn<VectorType>();
     return std::make_unique<MultiSinusoidSceneElement>(components, center);
   }
-  if (type == "power law spectrum") {
+  if (type == "power law") {
     const size_t num_sinusoids =
         params.empty() ? 8 : util::from_string<size_t>(params);
     std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components;
     for (size_t i = 0; i < num_sinusoids; ++i) {
-      // Sample log-frequency from uniform distribution
-      const auto log_frequency = 2 * random::rand<ScalarType>() - 1;
-      const auto frequency = std::exp(log_frequency);
+      // Sample random frequency
+      const auto frequency = 2 * random::rand<ScalarType>() + 0.25;
 
       // Amplitude follows power law w.r.t. frequency
-      const auto amplitude = std::pow(frequency, -2);
+      const auto amplitude = std::pow(frequency, -2) / num_sinusoids;
 
       // Sample orientation with bias orthogonal to y-axis
       VectorType orientation;

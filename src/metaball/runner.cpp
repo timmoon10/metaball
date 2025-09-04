@@ -130,9 +130,23 @@ std::string Runner::info_message() const {
 
   // Header
   _("Information");
-  _("-----------");
+  _("================");
+
+  // Scene properties
+  _();
+  _("Scene");
+  _("----------------");
+  _("Elements:");
+  for (size_t i = 0; i < scene_.num_elements(); ++i) {
+    _("  ", i, ": ", scene_.get_element(i).describe());
+  }
+  _("Density threshold: ", scene_.density_threshold());
+  _("Density threshold width: ", scene_.density_threshold_width());
 
   // Camera properties
+  _();
+  _("Camera");
+  _("----------------");
   _("Aperture position: ", camera_.aperture_position());
   _("Aperture orientation: ", camera_.aperture_orientation());
   _("Row orientation: ", camera_.row_orientation());
@@ -141,14 +155,11 @@ std::string Runner::info_message() const {
   _("Film speed: ", camera_.film_speed());
 
   // Runner properties
+  _();
+  _("Runner");
+  _("----------------");
   _("Timer interval: ", timer_interval_, " ms");
   _("Movement speed: ", movement_speed_);
-
-  // Scene properties
-  _("Scene:");
-  for (size_t i = 0; i < scene_.num_elements(); ++i) {
-    _("  ", i, ": ", scene_.get_element(i).describe());
-  }
 
   // Return string
   _();
@@ -479,6 +490,14 @@ void Runner::run_command(const std::string_view& name,
     } else {
       scene_.remove_element(util::from_string<size_t>(params));
     }
+    return;
+  }
+  if (name == "density threshold") {
+    scene_.set_density_threshold(util::from_string<ScalarType>(params));
+    return;
+  }
+  if (name == "density threshold width") {
+    scene_.set_density_threshold_width(util::from_string<ScalarType>(params));
     return;
   }
 
