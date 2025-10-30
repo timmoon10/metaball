@@ -29,6 +29,11 @@ std::unique_ptr<Integrator> Integrator::make_integrator(
         params.empty() ? 128 : util::from_string<size_t>(params);
     return std::make_unique<MonteCarloIntegrator>(num_evals);
   }
+  if (type == "stratified sampling") {
+    const size_t num_grids =
+        params.empty() ? 128 : util::from_string<size_t>(params);
+    return std::make_unique<StratifiedSamplingIntegrator>(num_grids, 1);
+  }
   UTIL_ERROR("Unrecognized integrator (", type, ")");
 }
 
@@ -73,6 +78,31 @@ MonteCarloIntegrator::ScalarType MonteCarloIntegrator::operator()(
     result += integrand(random::rand<ScalarType>());
   }
   result /= num_evals_;
+  return result;
+}
+
+StratifiedSamplingIntegrator::StratifiedSamplingIntegrator(
+    size_t num_grids, size_t evals_per_grid)
+    : num_grids_{num_grids}, evals_per_grid_{evals_per_grid} {}
+
+std::string StratifiedSamplingIntegrator::describe() const {
+  return util::concat_strings(
+      "StratifiedSamplingIntegrator (num_grids=", num_grids_,
+      ", evals_per_grid=", evals_per_grid_, ")");
+}
+
+StratifiedSamplingIntegrator::ScalarType
+StratifiedSamplingIntegrator::operator()(
+    const std::function<ScalarType(ScalarType)>& integrand) const {
+  const ScalarType grid_size = static_cast<ScalarType>(1) / num_grids_;
+  ScalarType result = 0;
+  for (size_t i = 0; i < num_grids_; ++i) {
+    const ScalarType offset = grid_size * i;
+    for (size_t j = 0; j < evals_per_grid_; ++j) {
+      result += integrand(offset + grid_size * random::rand<ScalarType>());
+    }
+  }
+  result /= num_grids_ * evals_per_grid_;
   return result;
 }
 

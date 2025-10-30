@@ -49,4 +49,18 @@ class MonteCarloIntegrator : public Integrator {
   size_t num_evals_;
 };
 
+class StratifiedSamplingIntegrator : public Integrator {
+ public:
+  StratifiedSamplingIntegrator(size_t num_grids, size_t evals_per_grid);
+
+  std::string describe() const override;
+
+  ScalarType operator()(
+      const std::function<ScalarType(ScalarType)>& integrand) const override;
+
+ private:
+  size_t num_grids_;
+  size_t evals_per_grid_;
+};
+
 }  // namespace metaball
