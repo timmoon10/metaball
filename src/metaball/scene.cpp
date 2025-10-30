@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 
+#include "metaball/integrator.hpp"
 #include "metaball/random.hpp"
 #include "util/error.hpp"
 #include "util/math.hpp"
@@ -41,6 +42,20 @@ void Scene::set_density_threshold(const ScalarType& threshold) {
 
 void Scene::set_density_threshold_width(const ScalarType& threshold_width) {
   density_threshold_width_ = threshold_width;
+}
+
+void Scene::set_integrator(std::unique_ptr<Integrator>&& integrator) {
+  integrator_ = std::move(integrator);
+}
+
+Integrator& Scene::get_integrator() {
+  return const_cast<Integrator&>(
+      const_cast<const Scene&>(*this).get_integrator());
+}
+
+const Integrator& Scene::get_integrator() const {
+  UTIL_CHECK(integrator_ != nullptr, "Integrator has not been initialized");
+  return *integrator_;
 }
 
 void Scene::add_element(std::unique_ptr<SceneElement>&& element) {
@@ -86,21 +101,15 @@ Scene::ScalarType Scene::apply_density_threshold(
 
 Scene::ScalarType Scene::trace_ray(const VectorType& origin,
                                    const VectorType& orientation,
-                                   const ScalarType& max_distance,
-                                   size_t num_evals) const {
-  // Trapezoid rule
+                                   const ScalarType& max_distance) const {
+  UTIL_CHECK(integrator_ != nullptr, "Integrator is uninitialized");
   UTIL_CHECK(orientation.norm2() > 0, "Invalid orientation (",
              static_cast<VectorType::ContainerType>(orientation), ")");
-  UTIL_CHECK(num_evals >= 2, "Invalid number of evaluations (", num_evals, ")");
-  const ScalarType grid_size = max_distance / (num_evals - 1);
-  const VectorType grid_shift = orientation * (grid_size / orientation.norm());
-  ScalarType result = compute_density(origin) / 2;
-  for (size_t i = 1; i < num_evals - 1; ++i) {
-    result += compute_density(origin + i * grid_shift);
-  }
-  result += compute_density(origin + (num_evals - 1) * grid_shift) / 2;
-  result *= grid_size;
-  return result;
+  const auto shift = orientation * (max_distance / orientation.norm());
+  auto integrand = [&](const ScalarType& t) -> ScalarType {
+    return compute_density(origin + t * shift);
+  };
+  return max_distance * (*integrator_)(integrand);
 }
 
 std::unique_ptr<SceneElement> SceneElement::make_element(

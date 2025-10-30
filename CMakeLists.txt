@@ -20,6 +20,7 @@ find_package(Qt6 REQUIRED Core Widgets)
 set(SOURCE_FILES
     src/metaball/camera.cpp
     src/metaball/image.cpp
+    src/metaball/integrator.cpp
     src/metaball/main.cpp
     src/metaball/random.cpp
     src/metaball/runner.cpp

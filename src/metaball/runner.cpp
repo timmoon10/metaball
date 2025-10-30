@@ -25,6 +25,7 @@
 
 #include "metaball/camera.hpp"
 #include "metaball/image.hpp"
+#include "metaball/integrator.hpp"
 #include "metaball/scene.hpp"
 #include "util/string.hpp"
 #include "util/vector.hpp"
@@ -142,6 +143,7 @@ std::string Runner::info_message() const {
   }
   _("Density threshold: ", scene_.density_threshold());
   _("Density threshold width: ", scene_.density_threshold_width());
+  _("Integrator: ", scene_.get_integrator().describe());
 
   // Camera properties
   _();
@@ -498,6 +500,10 @@ void Runner::run_command(const std::string_view& name,
   }
   if (name == "density threshold width") {
     scene_.set_density_threshold_width(util::from_string<ScalarType>(params));
+    return;
+  }
+  if (name == "set integrator") {
+    scene_.set_integrator(Integrator::make_integrator(params));
     return;
   }
 

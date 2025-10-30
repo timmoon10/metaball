@@ -6,6 +6,7 @@
 #include <tuple>
 #include <vector>
 
+#include "metaball/integrator.hpp"
 #include "util/vector.hpp"
 
 namespace metaball {
@@ -15,7 +16,7 @@ class SceneElement;
 class Scene {
  public:
   static constexpr size_t ndim = 3;
-  using ScalarType = double;
+  using ScalarType = Integrator::ScalarType;
   using VectorType = util::Vector<ndim, ScalarType>;
 
   Scene();
@@ -33,10 +34,14 @@ class Scene {
 
   size_t num_elements() const;
 
+  void set_integrator(std::unique_ptr<Integrator>&& integrator);
+  Integrator& get_integrator();
+  const Integrator& get_integrator() const;
+
   ScalarType compute_density(const VectorType& position) const;
 
   ScalarType trace_ray(const VectorType& origin, const VectorType& orientation,
-                       const ScalarType& max_distance, size_t num_evals) const;
+                       const ScalarType& max_distance) const;
 
  private:
   ScalarType apply_density_threshold(const ScalarType& score) const;
@@ -44,6 +49,8 @@ class Scene {
   std::vector<std::unique_ptr<SceneElement>> elements_;
   ScalarType density_threshold_ = 0.25;
   ScalarType density_threshold_width_ = 0.;
+  std::unique_ptr<Integrator> integrator_ =
+      Integrator::make_integrator("trapezoid");
 };
 
 class SceneElement {
@@ -59,16 +66,16 @@ class SceneElement {
   virtual std::string describe() const = 0;
 
   static std::unique_ptr<SceneElement> make_element(
-      const std::string_view& type);
+      const std::string_view& config);
 };
 
 class RadialSceneElement : public SceneElement {
  public:
   RadialSceneElement(const VectorType& center = {});
 
-  ScalarType operator()(const VectorType& position) const;
+  ScalarType operator()(const VectorType& position) const override;
 
-  std::string describe() const;
+  std::string describe() const override;
 
  private:
   VectorType center_;
@@ -80,9 +87,9 @@ class PolynomialSceneElement : public SceneElement {
                          const VectorType& center = {},
                          const ScalarType& decay = 1.0);
 
-  ScalarType operator()(const VectorType& position) const;
+  ScalarType operator()(const VectorType& position) const override;
 
-  std::string describe() const;
+  std::string describe() const override;
 
  private:
   std::vector<VectorType> coefficients_;
@@ -98,9 +105,9 @@ class SinusoidSceneElement : public SceneElement {
                        const VectorType& center = {},
                        const ScalarType& decay = 1.);
 
-  ScalarType operator()(const VectorType& position) const;
+  ScalarType operator()(const VectorType& position) const override;
 
-  std::string describe() const;
+  std::string describe() const override;
 
  private:
   VectorType wave_vector_;
@@ -116,9 +123,9 @@ class MultiSinusoidSceneElement : public SceneElement {
       std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components,
       const VectorType& center = {}, const ScalarType& decay = 1.);
 
-  ScalarType operator()(const VectorType& position) const;
+  ScalarType operator()(const VectorType& position) const override;
 
-  std::string describe() const;
+  std::string describe() const override;
 
  private:
   std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components_;
