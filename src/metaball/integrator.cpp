@@ -24,6 +24,11 @@ std::unique_ptr<Integrator> Integrator::make_integrator(
         params.empty() ? 128 : util::from_string<size_t>(params);
     return std::make_unique<TrapezoidIntegrator>(num_evals);
   }
+  if (type == "monte carlo") {
+    const size_t num_evals =
+        params.empty() ? 128 : util::from_string<size_t>(params);
+    return std::make_unique<MonteCarloIntegrator>(num_evals);
+  }
   UTIL_ERROR("Unrecognized integrator (", type, ")");
 }
 
@@ -50,6 +55,24 @@ TrapezoidIntegrator::ScalarType TrapezoidIntegrator::operator()(
   }
   result += integrand(one) / 2;
   result *= grid_size;
+  return result;
+}
+
+MonteCarloIntegrator::MonteCarloIntegrator(size_t num_evals)
+    : num_evals_{num_evals} {}
+
+std::string MonteCarloIntegrator::describe() const {
+  return util::concat_strings("MonteCarloIntegrator (num_evals=", num_evals_,
+                              ")");
+}
+
+MonteCarloIntegrator::ScalarType MonteCarloIntegrator::operator()(
+    const std::function<ScalarType(ScalarType)>& integrand) const {
+  ScalarType result = 0;
+  for (size_t i = 0; i < num_evals_; ++i) {
+    result += integrand(random::rand<ScalarType>());
+  }
+  result /= num_evals_;
   return result;
 }
 
