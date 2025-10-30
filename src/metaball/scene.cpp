@@ -137,7 +137,7 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
         params.empty() ? 8 : util::from_string<size_t>(params);
     std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components;
     for (size_t i = 0; i < num_sinusoids; ++i) {
-      auto wave_vector = random::randn<VectorType>();
+      const auto wave_vector = random::randn<VectorType>();
       const auto phase = random::rand<ScalarType>();
       const auto amplitude =
           std::abs(random::randn<ScalarType>()) / num_sinusoids;
@@ -168,6 +168,21 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
       auto wave_vector = orientation * frequency;
       const auto phase = random::rand<ScalarType>();
       components.emplace_back(wave_vector, phase, amplitude);
+    }
+    return std::make_unique<MultiSinusoidSceneElement>(components);
+  }
+  if (type == "moire") {
+    const size_t num_sinusoids =
+        params.empty() ? 2 : util::from_string<size_t>(params);
+    std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components;
+    const auto wave_vector = 8 * random::randn<VectorType>().unit();
+    const auto phase = random::rand<ScalarType>();
+    components.emplace_back(wave_vector, phase, 1.);
+    for (size_t i = 1; i < num_sinusoids; ++i) {
+      const auto wave_vector_shift = 0.0675 * random::randn<VectorType>();
+      const auto phase_shift = 0.125 * random::rand<ScalarType>() - 0.0675;
+      components.emplace_back(wave_vector + wave_vector_shift,
+                              phase + phase_shift, 1.);
     }
     return std::make_unique<MultiSinusoidSceneElement>(components);
   }
