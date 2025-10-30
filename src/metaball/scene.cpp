@@ -184,14 +184,11 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
     const size_t num_sinusoids =
         params.empty() ? 2 : util::from_string<size_t>(params);
     std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components;
-    const auto wave_vector = 8 * random::randn<VectorType>().unit();
-    const auto phase = random::rand<ScalarType>();
-    components.emplace_back(wave_vector, phase, 1.);
+    const auto wave_vector = 32 * random::randn<VectorType>().unit();
+    components.emplace_back(wave_vector, 0., 1.);
     for (size_t i = 1; i < num_sinusoids; ++i) {
-      const auto wave_vector_shift = 0.0675 * random::randn<VectorType>();
-      const auto phase_shift = 0.125 * random::rand<ScalarType>() - 0.0675;
-      components.emplace_back(wave_vector + wave_vector_shift,
-                              phase + phase_shift, 1.);
+      const auto shift = random::randn<VectorType>() / 2;
+      components.emplace_back(wave_vector + shift, 0., 1.);
     }
     return std::make_unique<MultiSinusoidSceneElement>(components);
   }
