@@ -41,7 +41,8 @@ inline std::string to_string_like(const Vector<N, T>& val) {
 
 namespace metaball {
 
-Runner::Runner(QWidget* parent) : QWidget(parent) {
+Runner::Runner(QWidget* parent)
+    : QWidget(parent), integrator_{Integrator::make_integrator("trapezoid")} {
   // Initialize window
   setWindowTitle("metaball");
   setMouseTracking(true);
@@ -143,7 +144,16 @@ std::string Runner::info_message() const {
   }
   _("Density threshold: ", scene_.density_threshold());
   _("Density threshold width: ", scene_.density_threshold_width());
-  _("Integrator: ", scene_.get_integrator().describe());
+
+  // Integrator properties
+  _();
+  _("Integrator");
+  _("----------------");
+  if (integrator_ == nullptr) {
+    _("Integrator: none");
+  } else {
+    _("Integrator: ", integrator_->describe());
+  }
 
   // Camera properties
   _();
@@ -246,7 +256,8 @@ void Runner::paintEvent(QPaintEvent*) {
   painter.setRenderHint(QPainter::Antialiasing);
 
   // Render image
-  auto image = camera_.make_image(scene_, height(), width());
+  UTIL_CHECK(integrator_ != nullptr, "Integrator has not been initialized");
+  auto image = camera_.make_image(scene_, *integrator_, height(), width());
   painter.drawImage(0, 0, image);
 }
 
@@ -438,7 +449,8 @@ void Runner::run_command(const std::string_view& name,
 
   // Export commands
   if (name == "save") {
-    auto image = camera_.make_image(scene_, height(), width());
+    UTIL_CHECK(integrator_ != nullptr, "Integrator has not been initialized");
+    auto image = camera_.make_image(scene_, *integrator_, height(), width());
     const std::string file =
         params.empty() ? "metaball.png" : std::string(params);
     static_cast<QImage>(image).save(QString(file.data()));
@@ -503,7 +515,7 @@ void Runner::run_command(const std::string_view& name,
     return;
   }
   if (name == "set integrator") {
-    scene_.set_integrator(Integrator::make_integrator(params));
+    integrator_ = Integrator::make_integrator(params);
     return;
   }
 

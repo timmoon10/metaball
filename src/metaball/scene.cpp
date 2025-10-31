@@ -44,20 +44,6 @@ void Scene::set_density_threshold_width(const ScalarType& threshold_width) {
   density_threshold_width_ = threshold_width;
 }
 
-void Scene::set_integrator(std::unique_ptr<Integrator>&& integrator) {
-  integrator_ = std::move(integrator);
-}
-
-Integrator& Scene::get_integrator() {
-  return const_cast<Integrator&>(
-      const_cast<const Scene&>(*this).get_integrator());
-}
-
-const Integrator& Scene::get_integrator() const {
-  UTIL_CHECK(integrator_ != nullptr, "Integrator has not been initialized");
-  return *integrator_;
-}
-
 void Scene::add_element(std::unique_ptr<SceneElement>&& element) {
   elements_.emplace_back(std::move(element));
 }
@@ -101,15 +87,15 @@ Scene::ScalarType Scene::apply_density_threshold(
 
 Scene::ScalarType Scene::trace_ray(const VectorType& origin,
                                    const VectorType& orientation,
-                                   const ScalarType& max_distance) const {
-  UTIL_CHECK(integrator_ != nullptr, "Integrator is uninitialized");
+                                   const Integrator& integrator) const {
   UTIL_CHECK(orientation.norm2() > 0, "Invalid orientation (",
              static_cast<VectorType::ContainerType>(orientation), ")");
+  const ScalarType max_distance = 16;
   const auto shift = orientation * (max_distance / orientation.norm());
   auto integrand = [&](const ScalarType& t) -> ScalarType {
     return compute_density(origin + t * shift);
   };
-  return max_distance * (*integrator_)(integrand);
+  return max_distance * integrator(integrand);
 }
 
 std::unique_ptr<SceneElement> SceneElement::make_element(

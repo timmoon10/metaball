@@ -7,6 +7,7 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <queue>
@@ -16,6 +17,7 @@
 #include <unordered_set>
 
 #include "metaball/camera.hpp"
+#include "metaball/integrator.hpp"
 #include "metaball/scene.hpp"
 
 namespace metaball {
@@ -44,6 +46,7 @@ class Runner : public QWidget {
 
  private:
   Scene scene_;
+  std::unique_ptr<Integrator> integrator_;
   Camera camera_;
 
   QTimer timer_;

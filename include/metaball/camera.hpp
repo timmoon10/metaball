@@ -4,6 +4,7 @@
 #include <string_view>
 
 #include "metaball/image.hpp"
+#include "metaball/integrator.hpp"
 #include "metaball/scene.hpp"
 
 namespace metaball {
@@ -15,7 +16,8 @@ class Camera {
 
   Camera();
 
-  Image make_image(const Scene& scene, size_t height, size_t width) const;
+  Image make_image(const Scene& scene, const Integrator& integrator,
+                   size_t height, size_t width) const;
 
   VectorType aperture_position() const;
   VectorType aperture_orientation() const;

@@ -34,14 +34,10 @@ class Scene {
 
   size_t num_elements() const;
 
-  void set_integrator(std::unique_ptr<Integrator>&& integrator);
-  Integrator& get_integrator();
-  const Integrator& get_integrator() const;
-
   ScalarType compute_density(const VectorType& position) const;
 
   ScalarType trace_ray(const VectorType& origin, const VectorType& orientation,
-                       const ScalarType& max_distance) const;
+                       const Integrator& integrator) const;
 
  private:
   ScalarType apply_density_threshold(const ScalarType& score) const;
@@ -49,8 +45,6 @@ class Scene {
   std::vector<std::unique_ptr<SceneElement>> elements_;
   ScalarType density_threshold_ = 0.25;
   ScalarType density_threshold_width_ = 0.;
-  std::unique_ptr<Integrator> integrator_ =
-      Integrator::make_integrator("trapezoid");
 };
 
 class SceneElement {

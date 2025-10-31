@@ -12,6 +12,7 @@
 #include <utility>
 
 #include "metaball/image.hpp"
+#include "metaball/integrator.hpp"
 #include "metaball/scene.hpp"
 #include "util/error.hpp"
 #include "util/vector.hpp"
@@ -59,8 +60,8 @@ Camera::Camera() {
   column_orientation_[1] = -1;
 }
 
-Image Camera::make_image(const Scene& scene, size_t height,
-                         size_t width) const {
+Image Camera::make_image(const Scene& scene, const Integrator& integrator,
+                         size_t height, size_t width) const {
   Image result(height, width);
   const auto corner_pixel_and_offsets_ =
       corner_pixel_and_offsets(height, width);
@@ -72,7 +73,7 @@ Image Camera::make_image(const Scene& scene, size_t height,
     for (size_t j = 0; j < width; ++j) {
       auto pixel = corner_pixel + i * shift_y + j * shift_x;
       auto ray = aperture_position_ - pixel;
-      auto intensity = scene.trace_ray(aperture_position_, ray, 16);
+      auto intensity = scene.trace_ray(aperture_position_, ray, integrator);
       result.set(i, j, gamma_transfer_function(intensity * film_speed_));
     }
   }
