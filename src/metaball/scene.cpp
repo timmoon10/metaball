@@ -90,12 +90,19 @@ Scene::ScalarType Scene::trace_ray(const VectorType& origin,
                                    const Integrator& integrator) const {
   UTIL_CHECK(orientation.norm2() > 0, "Invalid orientation (",
              static_cast<VectorType::ContainerType>(orientation), ")");
+  const auto orientation_unit = orientation.unit();
   const ScalarType max_distance = 16;
-  const auto shift = orientation * (max_distance / orientation.norm());
+  const ScalarType decay_start_distance = 4;
+  auto scale = max_distance;
+  scale *= 2 / (decay_start_distance * decay_start_distance + 2);
   auto integrand = [&](const ScalarType& t) -> ScalarType {
-    return compute_density(origin + t * shift);
+    const ScalarType dist = t * max_distance;
+    const auto decay =
+        (dist <= decay_start_distance ? dist
+                                      : decay_start_distance / (dist * dist));
+    return decay * compute_density(origin + dist * orientation_unit);
   };
-  return max_distance * integrator(integrand);
+  return scale * integrator(integrand);
 }
 
 std::unique_ptr<SceneElement> SceneElement::make_element(
@@ -123,9 +130,7 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
   if (type == "sinusoid") {
     const auto wave_vector = random::randn<VectorType>();
     const auto phase = random::rand<ScalarType>();
-    const auto center = random::randn<VectorType>();
-    return std::make_unique<SinusoidSceneElement>(wave_vector, phase, 1.,
-                                                  center);
+    return std::make_unique<SinusoidSceneElement>(wave_vector, phase, 1.);
   }
   if (type == "multi sinusoid") {
     const size_t num_sinusoids =
@@ -138,8 +143,7 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
           std::abs(random::randn<ScalarType>()) / num_sinusoids;
       components.emplace_back(wave_vector, phase, amplitude);
     }
-    const auto center = random::randn<VectorType>();
-    return std::make_unique<MultiSinusoidSceneElement>(components, center);
+    return std::make_unique<MultiSinusoidSceneElement>(components);
   }
   if (type == "power law") {
     const size_t num_sinusoids =
@@ -194,18 +198,13 @@ std::string RadialSceneElement::describe() const {
 }
 
 PolynomialSceneElement::PolynomialSceneElement(
-    std::vector<VectorType> coefficients, const VectorType& center,
-    const ScalarType& decay)
-    : coefficients_{std::move(coefficients)}, center_{center}, decay_{decay} {}
+    std::vector<VectorType> coefficients, const VectorType& center)
+    : coefficients_{std::move(coefficients)}, center_{center} {}
 
 PolynomialSceneElement::ScalarType PolynomialSceneElement::operator()(
     const VectorType& position) const {
   const auto offset = position - center_;
-  const auto log_envelope = -decay_ * offset.norm2();
-  if (log_envelope < -16) {
-    return 0;
-  }
-  ScalarType result = std::exp(log_envelope);
+  ScalarType result = 1;
   for (const auto& coeffs : coefficients_) {
     result *= util::dot(coeffs, offset);
   }
@@ -213,69 +212,47 @@ PolynomialSceneElement::ScalarType PolynomialSceneElement::operator()(
 }
 
 std::string PolynomialSceneElement::describe() const {
-  return util::concat_strings(
-      "PolynomialSceneElement (coefficients=", coefficients_,
-      ", center=", center_, ", decay=", decay_, ")");
+  return util::concat_strings("PolynomialSceneElement (coefficients=",
+                              coefficients_, ", center=", center_, ")");
 }
 
 SinusoidSceneElement::SinusoidSceneElement(const VectorType& wave_vector,
                                            const ScalarType& phase,
-                                           const ScalarType& amplitude,
-                                           const VectorType& center,
-                                           const ScalarType& decay)
-    : wave_vector_{wave_vector},
-      phase_{phase},
-      amplitude_{amplitude},
-      center_{center},
-      decay_{decay} {}
+                                           const ScalarType& amplitude)
+    : wave_vector_{wave_vector}, phase_{phase}, amplitude_{amplitude} {}
 
 SinusoidSceneElement::ScalarType SinusoidSceneElement::operator()(
     const VectorType& position) const {
-  const auto offset = position - center_;
-  const auto log_envelope = -decay_ * offset.norm2();
-  if (log_envelope < -8) {
-    return 0;
-  }
-  ScalarType result = std::exp(log_envelope);
   constexpr ScalarType two_pi = 2 * std::numbers::pi;
-  result *= amplitude_;
-  result *= std::sin(two_pi * (util::dot(offset, wave_vector_) + phase_));
+  ScalarType result = amplitude_;
+  result *= std::sin(two_pi * (util::dot(position, wave_vector_) + phase_));
   return result;
 }
 
 std::string SinusoidSceneElement::describe() const {
   return util::concat_strings(
       "SinusoidSceneElement (wave_vector=", wave_vector_, ", phase=", phase_,
-      ", amplitude=", amplitude_, ", center=", center_, ", decay=", decay_,
-      ")");
+      ", amplitude=", amplitude_, ")");
 }
 
 MultiSinusoidSceneElement::MultiSinusoidSceneElement(
-    std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components,
-    const VectorType& center, const ScalarType& decay)
-    : components_{std::move(components)}, center_{center}, decay_{decay} {}
+    std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components)
+    : components_{std::move(components)} {}
 
 MultiSinusoidSceneElement::ScalarType MultiSinusoidSceneElement::operator()(
     const VectorType& position) const {
-  const auto offset = position - center_;
-  const auto log_envelope = -decay_ * offset.norm2();
-  if (log_envelope < -8) {
-    return 0;
-  }
   ScalarType result = 0;
   constexpr ScalarType two_pi = 2 * std::numbers::pi;
   for (const auto& [wave_vector, phase, amplitude] : components_) {
-    result +=
-        amplitude * std::sin(two_pi * (util::dot(offset, wave_vector) + phase));
+    result += amplitude *
+              std::sin(two_pi * (util::dot(position, wave_vector) + phase));
   }
-  result *= std::exp(log_envelope);
   return result;
 }
 
 std::string MultiSinusoidSceneElement::describe() const {
   return util::concat_strings(
-      "MultiSinusoidSceneElement (components=", components_,
-      ", center=", center_, ", decay=", decay_, ")");
+      "MultiSinusoidSceneElement (components=", components_, ")");
 }
 
 }  // namespace metaball

@@ -78,8 +78,7 @@ class RadialSceneElement : public SceneElement {
 class PolynomialSceneElement : public SceneElement {
  public:
   PolynomialSceneElement(std::vector<VectorType> coefficients,
-                         const VectorType& center = {},
-                         const ScalarType& decay = 1.0);
+                         const VectorType& center = {});
 
   ScalarType operator()(const VectorType& position) const override;
 
@@ -88,16 +87,13 @@ class PolynomialSceneElement : public SceneElement {
  private:
   std::vector<VectorType> coefficients_;
   VectorType center_;
-  ScalarType decay_;
 };
 
 class SinusoidSceneElement : public SceneElement {
  public:
   SinusoidSceneElement(const VectorType& wave_vector,
                        const ScalarType& phase = 0.,
-                       const ScalarType& amplitude = 1.,
-                       const VectorType& center = {},
-                       const ScalarType& decay = 1.);
+                       const ScalarType& amplitude = 1.);
 
   ScalarType operator()(const VectorType& position) const override;
 
@@ -107,15 +103,12 @@ class SinusoidSceneElement : public SceneElement {
   VectorType wave_vector_;
   ScalarType phase_;
   ScalarType amplitude_;
-  VectorType center_;
-  ScalarType decay_;
 };
 
 class MultiSinusoidSceneElement : public SceneElement {
  public:
   MultiSinusoidSceneElement(
-      std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components,
-      const VectorType& center = {}, const ScalarType& decay = 1.);
+      std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components);
 
   ScalarType operator()(const VectorType& position) const override;
 
@@ -123,8 +116,6 @@ class MultiSinusoidSceneElement : public SceneElement {
 
  private:
   std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components_;
-  VectorType center_;
-  ScalarType decay_;
 };
 
 }  // namespace metaball
