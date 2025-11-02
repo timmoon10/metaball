@@ -42,7 +42,7 @@ inline std::string to_string_like(const Vector<N, T>& val) {
 namespace metaball {
 
 Runner::Runner(QWidget* parent)
-    : QWidget(parent), integrator_{Integrator::make_integrator("trapezoid")} {
+    : QWidget(parent), integrator_{Integrator::make_integrator("stratified sampling")} {
   // Initialize window
   setWindowTitle("metaball");
   setMouseTracking(true);

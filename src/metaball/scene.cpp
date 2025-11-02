@@ -88,20 +88,29 @@ Scene::ScalarType Scene::apply_density_threshold(
 Scene::ScalarType Scene::trace_ray(const VectorType& origin,
                                    const VectorType& orientation,
                                    const Integrator& integrator) const {
+  // Normalize ray orientation
   UTIL_CHECK(orientation.norm2() > 0, "Invalid orientation (",
              static_cast<VectorType::ContainerType>(orientation), ")");
   const auto orientation_unit = orientation.unit();
-  const ScalarType max_distance = 16;
-  const ScalarType decay_start_distance = 4;
+
+  // Scale integration interval to unit interval
+  const ScalarType max_distance = 8;
   auto scale = max_distance;
-  scale *= 2 / (decay_start_distance * decay_start_distance + 2);
+
+  // Apply decay proportional to x^2/(1+x^4)
+  const ScalarType decay_dist_scale = 4;  // Distance with minimum decay
+  constexpr ScalarType decay_normalization = 2 * std::numbers::sqrt2 / std::numbers::pi;
+  scale *= decay_normalization / decay_dist_scale;
+
+  // Function to integrate over unit interval
   auto integrand = [&](const ScalarType& t) -> ScalarType {
     const ScalarType dist = t * max_distance;
-    const auto decay =
-        (dist <= decay_start_distance ? dist
-                                      : decay_start_distance / (dist * dist));
+    const auto decay_dist = dist / decay_dist_scale;
+    const auto decay_dist2 = decay_dist * decay_dist;
+    const auto decay = decay_dist2 / (1 + decay_dist2 * decay_dist2);
     return decay * compute_density(origin + dist * orientation_unit);
   };
+
   return scale * integrator(integrand);
 }
 
