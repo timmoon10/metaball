@@ -23,6 +23,19 @@ class Integrator {
       const std::string_view& config);
 };
 
+class GridIntegrator : public Integrator {
+ public:
+  GridIntegrator(size_t num_evals);
+
+  std::string describe() const override;
+
+  ScalarType operator()(
+      const std::function<ScalarType(ScalarType)>& integrand) const override;
+
+ private:
+  size_t num_evals_;
+};
+
 class TrapezoidIntegrator : public Integrator {
  public:
   TrapezoidIntegrator(size_t num_evals);

@@ -65,7 +65,8 @@ class SceneElement {
 
 class RadialSceneElement : public SceneElement {
  public:
-  RadialSceneElement(const VectorType& center = {});
+  RadialSceneElement(const VectorType& center = {},
+                     const ScalarType& decay = 1.);
 
   ScalarType operator()(const VectorType& position) const override;
 
@@ -73,6 +74,7 @@ class RadialSceneElement : public SceneElement {
 
  private:
   VectorType center_;
+  ScalarType decay_square_;
 };
 
 class PolynomialSceneElement : public SceneElement {
@@ -116,6 +118,20 @@ class MultiSinusoidSceneElement : public SceneElement {
 
  private:
   std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components_;
+};
+
+class MinusExpSceneElement : public SceneElement {
+ public:
+  MinusExpSceneElement(const VectorType& center = {},
+                       const ScalarType& dist_scale = 1.);
+
+  ScalarType operator()(const VectorType& position) const override;
+
+  std::string describe() const override;
+
+ private:
+  VectorType center_;
+  ScalarType dist_scale_square_;
 };
 
 }  // namespace metaball

@@ -19,6 +19,11 @@ std::unique_ptr<Integrator> Integrator::make_integrator(
   const auto& type = util::strip(config_parsed[0]);
   const auto& params =
       config_parsed.size() > 1 ? util::strip(config_parsed[1]) : "";
+  if (type == "grid") {
+    const size_t num_evals =
+        params.empty() ? 128 : util::from_string<size_t>(params);
+    return std::make_unique<GridIntegrator>(num_evals);
+  }
   if (type == "trapezoid") {
     const size_t num_evals =
         params.empty() ? 128 : util::from_string<size_t>(params);
@@ -35,6 +40,26 @@ std::unique_ptr<Integrator> Integrator::make_integrator(
     return std::make_unique<StratifiedSamplingIntegrator>(num_grids, 1);
   }
   UTIL_ERROR("Unrecognized integrator (", type, ")");
+}
+
+GridIntegrator::GridIntegrator(size_t num_evals) : num_evals_{num_evals} {}
+
+std::string GridIntegrator::describe() const {
+  return util::concat_strings("GridIntegrator (num_evals=", num_evals_, ")");
+}
+
+GridIntegrator::ScalarType GridIntegrator::operator()(
+    const std::function<ScalarType(ScalarType)>& integrand) const {
+  UTIL_CHECK(num_evals_ >= 1,
+             "Grid integration requires at least 1 evaluation point, but got ",
+             num_evals_);
+  const ScalarType half_grid_size = static_cast<ScalarType>(0.5) / num_evals_;
+  ScalarType result = 0;
+  for (size_t i = 0; i < num_evals_; ++i) {
+    result += integrand(half_grid_size * (2 * i + 1));
+  }
+  result *= 2 * half_grid_size;
+  return result;
 }
 
 TrapezoidIntegrator::TrapezoidIntegrator(size_t num_evals)

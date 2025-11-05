@@ -99,7 +99,8 @@ Scene::ScalarType Scene::trace_ray(const VectorType& origin,
 
   // Apply decay proportional to x^2/(1+x^4)
   const ScalarType decay_dist_scale = 4;  // Distance with minimum decay
-  constexpr ScalarType decay_normalization = 2 * std::numbers::sqrt2 / std::numbers::pi;
+  constexpr ScalarType decay_normalization =
+      2 * std::numbers::sqrt2 / std::numbers::pi;
   scale *= decay_normalization / decay_dist_scale;
 
   // Function to integrate over unit interval
@@ -124,7 +125,7 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
       config_parsed.size() > 1 ? util::strip(config_parsed[1]) : "";
   if (type == "radial") {
     const auto center = random::randn<VectorType>();
-    return std::make_unique<RadialSceneElement>(center);
+    return std::make_unique<RadialSceneElement>(center, 2.);
   }
   if (type == "polynomial") {
     const size_t degree =
@@ -153,6 +154,12 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
       components.emplace_back(wave_vector, phase, amplitude);
     }
     return std::make_unique<MultiSinusoidSceneElement>(components);
+  }
+  if (type == "minus exp") {
+    const ScalarType dist_scale =
+        (params.empty() ? static_cast<ScalarType>(1.)
+                        : util::from_string<ScalarType>(params));
+    return std::make_unique<MinusExpSceneElement>(VectorType{}, dist_scale);
   }
   if (type == "power law") {
     const size_t num_sinusoids =
@@ -194,12 +201,13 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
   UTIL_ERROR("Unrecognized scene element (", type, ")");
 }
 
-RadialSceneElement::RadialSceneElement(const VectorType& center)
-    : center_{center} {}
+RadialSceneElement::RadialSceneElement(const VectorType& center,
+                                       const ScalarType& decay)
+    : center_{center}, decay_square_{decay * decay} {}
 
 RadialSceneElement::ScalarType RadialSceneElement::operator()(
     const VectorType& position) const {
-  return 1 / (1 + (position - center_).norm2());
+  return 1 / (1 + decay_square_ * (position - center_).norm2());
 }
 
 std::string RadialSceneElement::describe() const {
@@ -262,6 +270,20 @@ MultiSinusoidSceneElement::ScalarType MultiSinusoidSceneElement::operator()(
 std::string MultiSinusoidSceneElement::describe() const {
   return util::concat_strings(
       "MultiSinusoidSceneElement (components=", components_, ")");
+}
+
+MinusExpSceneElement::MinusExpSceneElement(const VectorType& center,
+                                           const ScalarType& dist_scale)
+    : center_{center}, dist_scale_square_{dist_scale * dist_scale} {}
+
+MinusExpSceneElement::ScalarType MinusExpSceneElement::operator()(
+    const VectorType& position) const {
+  return -std::expm1(dist_scale_square_ * (position - center_).norm2());
+}
+
+std::string MinusExpSceneElement::describe() const {
+  return util::concat_strings("MinusExpSceneElement (center=", center_,
+                              ", dist_scale_square=", dist_scale_square_, ")");
 }
 
 }  // namespace metaball
