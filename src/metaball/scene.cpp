@@ -93,26 +93,39 @@ Scene::ScalarType Scene::trace_ray(const VectorType& origin,
              static_cast<VectorType::ContainerType>(orientation), ")");
   const auto orientation_unit = orientation.unit();
 
-  // Scale integration interval to unit interval
-  const ScalarType max_distance = 8;
-  auto scale = max_distance;
-
-  // Apply decay proportional to x^2/(1+x^4)
-  const ScalarType decay_dist_scale = 4;  // Distance with minimum decay
-  constexpr ScalarType decay_normalization =
+  // Decay factor
+  // Note: Define s = x/x0 and apply decay of C*s^2/(1+s^4). The decay
+  // peaks at x=x0, i.e. s=1. With C=2*sqrt(2)/(pi*x0), the integral
+  // of the decay over [0,inf) is 1.
+  const ScalarType x0 = 4;
+  auto decay = [](const ScalarType& s) -> ScalarType {
+    const auto s2 = s * s;
+    return s2 / (1 + s2 * s2);
+  };
+  constexpr ScalarType recip_decay_integral =
       2 * std::numbers::sqrt2 / std::numbers::pi;
-  scale *= decay_normalization / decay_dist_scale;
 
-  // Function to integrate over unit interval
-  auto integrand = [&](const ScalarType& t) -> ScalarType {
-    const ScalarType dist = t * max_distance;
-    const auto decay_dist = dist / decay_dist_scale;
-    const auto decay_dist2 = decay_dist * decay_dist;
-    const auto decay = decay_dist2 / (1 + decay_dist2 * decay_dist2);
-    return decay * compute_density(origin + dist * orientation_unit);
+  // Integral reparametrization factor
+  // Note: In order to convert integral over [0,inf) to integral over
+  // [0,1], reparametrize s=t/(1-t). This has x=x0 at
+  // t=0.5. This reparametrization requires applying x'(t).
+  auto ds = [](const ScalarType& t) -> ScalarType {
+    const auto tm1 = t - 1;
+    return 1 / (tm1 * tm1);
   };
 
-  return scale * integrator(integrand);
+  // Function to integrate
+  auto integrand = [&](const ScalarType& t_) -> ScalarType {
+    constexpr ScalarType min = 0;
+    constexpr ScalarType max =
+        1 - std::numeric_limits<ScalarType>::epsilon() / 2;
+    const auto t = std::clamp(t_, min, max);
+    const auto s = t / (1 - t);
+    const auto x = s * x0;
+    return decay(s) * ds(t) * compute_density(origin + x * orientation_unit);
+  };
+
+  return recip_decay_integral * integrator(integrand);
 }
 
 std::unique_ptr<SceneElement> SceneElement::make_element(

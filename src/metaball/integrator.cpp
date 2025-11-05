@@ -21,22 +21,22 @@ std::unique_ptr<Integrator> Integrator::make_integrator(
       config_parsed.size() > 1 ? util::strip(config_parsed[1]) : "";
   if (type == "grid") {
     const size_t num_evals =
-        params.empty() ? 128 : util::from_string<size_t>(params);
+        params.empty() ? 64 : util::from_string<size_t>(params);
     return std::make_unique<GridIntegrator>(num_evals);
   }
   if (type == "trapezoid") {
     const size_t num_evals =
-        params.empty() ? 128 : util::from_string<size_t>(params);
+        params.empty() ? 64 : util::from_string<size_t>(params);
     return std::make_unique<TrapezoidIntegrator>(num_evals);
   }
   if (type == "monte carlo") {
     const size_t num_evals =
-        params.empty() ? 128 : util::from_string<size_t>(params);
+        params.empty() ? 64 : util::from_string<size_t>(params);
     return std::make_unique<MonteCarloIntegrator>(num_evals);
   }
   if (type == "stratified sampling") {
     const size_t num_grids =
-        params.empty() ? 128 : util::from_string<size_t>(params);
+        params.empty() ? 64 : util::from_string<size_t>(params);
     return std::make_unique<StratifiedSamplingIntegrator>(num_grids, 1);
   }
   UTIL_ERROR("Unrecognized integrator (", type, ")");
