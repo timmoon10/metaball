@@ -1,5 +1,6 @@
 #include "metaball/scene.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <numbers>
@@ -164,6 +165,21 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
     }
     return std::make_unique<MultiSinusoidSceneElement>(components);
   }
+  if (type == "radial sinusoid") {
+    const auto center = random::randn<VectorType>();
+    const auto frequency = 2 * random::rand<ScalarType>();
+    const auto phase = random::rand<ScalarType>();
+    return std::make_unique<RadialSinusoidSceneElement>(center, frequency,
+                                                        phase, 1.);
+  }
+  if (type == "polar sinusoid") {
+    const auto center = random::randn<VectorType>();
+    const auto orientation = random::randn<VectorType>();
+    const auto radial_frequency = 8 * random::rand<ScalarType>();
+    const auto phase = random::rand<ScalarType>();
+    return std::make_unique<PolarSinusoidSceneElement>(
+        center, orientation, 0., radial_frequency, phase, 1.);
+  }
   if (type == "minus exp") {
     const ScalarType dist_scale =
         (params.empty() ? static_cast<ScalarType>(1.)
@@ -279,6 +295,59 @@ MultiSinusoidSceneElement::ScalarType MultiSinusoidSceneElement::operator()(
 std::string MultiSinusoidSceneElement::describe() const {
   return util::concat_strings(
       "MultiSinusoidSceneElement (components=", components_, ")");
+}
+
+RadialSinusoidSceneElement::RadialSinusoidSceneElement(
+    const VectorType& center, const ScalarType& frequency,
+    const ScalarType& phase, const ScalarType& amplitude)
+    : center_{center},
+      frequency_{frequency},
+      phase_{phase},
+      amplitude_{amplitude} {}
+
+RadialSinusoidSceneElement::ScalarType RadialSinusoidSceneElement::operator()(
+    const VectorType& position) const {
+  constexpr ScalarType two_pi = 2 * std::numbers::pi;
+  const auto& r = (position - center_).norm();
+  return amplitude_ * std::sin(two_pi * frequency_ * r + phase_);
+}
+
+std::string RadialSinusoidSceneElement::describe() const {
+  return util::concat_strings("RadialSinusoidSceneElement (center=", center_,
+                              ", frequency=", frequency_, ", phase=", phase_,
+                              ", amplitude=", amplitude_, ")");
+}
+
+PolarSinusoidSceneElement::PolarSinusoidSceneElement(
+    const VectorType& center, const VectorType& orientation,
+    const ScalarType& radial_frequency, const ScalarType& polar_frequency,
+    const ScalarType& phase, const ScalarType& amplitude)
+    : center_{center},
+      orientation_{orientation.unit()},
+      radial_frequency_{radial_frequency},
+      polar_frequency_{polar_frequency},
+      phase_{phase},
+      amplitude_{amplitude} {}
+
+PolarSinusoidSceneElement::ScalarType PolarSinusoidSceneElement::operator()(
+    const VectorType& position) const {
+  constexpr ScalarType one = 1;
+  constexpr ScalarType two_pi = 2 * std::numbers::pi;
+  const auto& pos = position - center_;
+  const auto& r = pos.norm();
+  const auto& cos_theta = util::dot(pos / r, orientation_);
+  const auto& theta = std::acos(std::clamp(cos_theta, -one, one));
+  return amplitude_ *
+         std::sin(two_pi * (radial_frequency_ * r + polar_frequency_ * theta) +
+                  phase_);
+}
+
+std::string PolarSinusoidSceneElement::describe() const {
+  return util::concat_strings(
+      "PolarSinusoidSceneElement (center=", center_,
+      ", orientation=", orientation_, ", radial frequency=", radial_frequency_,
+      ", polar frequency=", polar_frequency_, ", phase=", phase_,
+      ", amplitude=", amplitude_, ")");
 }
 
 MinusExpSceneElement::MinusExpSceneElement(const VectorType& center,

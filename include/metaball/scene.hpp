@@ -120,6 +120,46 @@ class MultiSinusoidSceneElement : public SceneElement {
   std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components_;
 };
 
+class RadialSinusoidSceneElement : public SceneElement {
+ public:
+  RadialSinusoidSceneElement(const VectorType& center,
+                             const ScalarType& frequency,
+                             const ScalarType& phase = 0.,
+                             const ScalarType& amplitude = 1.);
+
+  ScalarType operator()(const VectorType& position) const override;
+
+  std::string describe() const override;
+
+ private:
+  VectorType center_;
+  ScalarType frequency_;
+  ScalarType phase_;
+  ScalarType amplitude_;
+};
+
+class PolarSinusoidSceneElement : public SceneElement {
+ public:
+  PolarSinusoidSceneElement(const VectorType& center,
+                            const VectorType& orientation,
+                            const ScalarType& radial_frequency,
+                            const ScalarType& polar_frequency,
+                            const ScalarType& phase = 0.,
+                            const ScalarType& amplitude = 1.);
+
+  ScalarType operator()(const VectorType& position) const override;
+
+  std::string describe() const override;
+
+ private:
+  VectorType center_;
+  VectorType orientation_;
+  ScalarType radial_frequency_;
+  ScalarType polar_frequency_;
+  ScalarType phase_;
+  ScalarType amplitude_;
+};
+
 class MinusExpSceneElement : public SceneElement {
  public:
   MinusExpSceneElement(const VectorType& center = {},
