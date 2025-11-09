@@ -223,7 +223,67 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
     }
     return std::make_unique<MultiSinusoidSceneElement>(components);
   }
+  if (type == "radial moire") {
+    const size_t num_sinusoids =
+        params.empty() ? 2 : util::from_string<size_t>(params);
+    const VectorType center;
+    const ScalarType frequency = 32;
+    auto result = std::make_unique<MultiSceneElement>();
+    result->add_element(std::make_unique<RadialSinusoidSceneElement>(
+        center, frequency, 0., 1.));
+    for (size_t i = 1; i < num_sinusoids; ++i) {
+      const auto shift = random::randn<VectorType>() / 2;
+      result->add_element(std::make_unique<RadialSinusoidSceneElement>(
+          center + shift, frequency, 0., 1.));
+    }
+    return result;
+  }
+  if (type == "polar moire") {
+    const size_t num_sinusoids =
+        params.empty() ? 2 : util::from_string<size_t>(params);
+    const VectorType center;
+    const VectorType orientation = random::randn<VectorType>().unit();
+    const ScalarType frequency = 32;
+    auto result = std::make_unique<MultiSceneElement>();
+    result->add_element(std::make_unique<PolarSinusoidSceneElement>(
+        center, orientation, 0., frequency, 0., 1.));
+    for (size_t i = 1; i < num_sinusoids; ++i) {
+      const auto center_shift = random::randn<VectorType>() / 2;
+      const auto orientation_shift = random::randn<VectorType>() / 2;
+      result->add_element(std::make_unique<PolarSinusoidSceneElement>(
+          center + center_shift, orientation + orientation_shift, 0., frequency,
+          0., 1.));
+    }
+    return result;
+  }
   UTIL_ERROR("Unrecognized scene element (", type, ")");
+}
+
+MultiSceneElement::MultiSceneElement() {}
+
+void MultiSceneElement::add_element(std::unique_ptr<SceneElement>&& element) {
+  elements_.emplace_back(std::move(element));
+}
+
+MultiSceneElement::ScalarType MultiSceneElement::operator()(
+    const VectorType& position) const {
+  ScalarType score = 0;
+  for (const auto& element : elements_) {
+    score += (*element)(position);
+  }
+  return score;
+}
+
+std::string MultiSceneElement::describe() const {
+  std::string desc = "MultiSceneElement (";
+  for (size_t i = 0; i < elements_.size(); ++i) {
+    if (i > 0) {
+      desc += ",";
+    }
+    desc += elements_[i]->describe();
+  }
+  desc += ")";
+  return desc;
 }
 
 RadialSceneElement::RadialSceneElement(const VectorType& center,

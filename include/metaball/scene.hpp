@@ -63,6 +63,20 @@ class SceneElement {
       const std::string_view& config);
 };
 
+class MultiSceneElement : public SceneElement {
+ public:
+  MultiSceneElement();
+
+  void add_element(std::unique_ptr<SceneElement>&& element);
+
+  ScalarType operator()(const VectorType& position) const override;
+
+  std::string describe() const override;
+
+ private:
+  std::vector<std::unique_ptr<SceneElement>> elements_;
+};
+
 class RadialSceneElement : public SceneElement {
  public:
   RadialSceneElement(const VectorType& center = {},
