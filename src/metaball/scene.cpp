@@ -215,7 +215,8 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
     const size_t num_sinusoids =
         params.empty() ? 2 : util::from_string<size_t>(params);
     std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components;
-    const auto wave_vector = 32 * random::randn<VectorType>().unit();
+    VectorType wave_vector;
+    wave_vector[0] = 32;
     components.emplace_back(wave_vector, 0., 1.);
     for (size_t i = 1; i < num_sinusoids; ++i) {
       const auto shift = random::randn<VectorType>() / 2;
@@ -242,7 +243,8 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
     const size_t num_sinusoids =
         params.empty() ? 2 : util::from_string<size_t>(params);
     const VectorType center;
-    const VectorType orientation = random::randn<VectorType>().unit();
+    VectorType orientation;
+    orientation[0] = 1;
     const ScalarType frequency = 32;
     auto result = std::make_unique<MultiSceneElement>();
     result->add_element(std::make_unique<PolarSinusoidSceneElement>(
