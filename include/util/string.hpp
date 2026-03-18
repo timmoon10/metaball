@@ -25,7 +25,13 @@ std::string_view lstrip(const std::string_view& str);
 /*! \brief Remove trailing whitespace */
 std::string_view rstrip(const std::string_view& str);
 
-/*! \brief Split string into a list */
+/*! \brief Split string into a list
+ *
+ * \param[in] str       String to split
+ * \param[in] separator Delimiter.
+ * \param[in] maxsplit  Maximum number of splits to perform. If 0
+ *                      (default), there is no limit.
+ */
 std::vector<std::string_view> split(const std::string_view& str,
                                     const std::string_view& separator,
                                     size_t maxsplit = 0);

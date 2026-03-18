@@ -6,7 +6,7 @@ namespace util {
 
 /*! \brief Get environment variable and convert to type */
 template <typename T = std::string>
-const T getenv(const std::string& variable, const T& default_value);
+T getenv(const std::string& variable, const T& default_value);
 
 /*! \brief Get environment variable and convert to type
  *
@@ -14,7 +14,7 @@ const T getenv(const std::string& variable, const T& default_value);
  * returned.
  */
 template <typename T = std::string>
-const T getenv(const std::string& variable);
+T getenv(const std::string& variable);
 
 }  // namespace util
 

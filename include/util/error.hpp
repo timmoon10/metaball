@@ -29,4 +29,9 @@
                 << ::std::flush;                                            \
   } while (false)
 
+// Note: this header has a circular dependency with util/string.hpp.
+// error.hpp uses concat_strings (from string.hpp) to build messages;
+// string.hpp uses UTIL_CHECK (from error.hpp) for runtime assertions.
+// This is intentional and safe — macros are resolved at call sites,
+// not at definition time, so either header may be included first.
 #include "util/string.hpp"

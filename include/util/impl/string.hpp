@@ -147,7 +147,7 @@ inline bool from_string<bool>(const std::string_view& str) {
   // Check for string values
   auto temp_str = std::string(strip(str));
   for (size_t i = 0; i < temp_str.size(); ++i) {
-    temp_str[i] = std::tolower(temp_str[i]);
+    temp_str[i] = std::tolower(static_cast<unsigned char>(temp_str[i]));
   }
   if (temp_str == "true" || temp_str == "yes" || temp_str == "on") {
     return true;
@@ -189,18 +189,21 @@ namespace util {
 
 inline std::string_view strip(const std::string_view& str) {
   size_t first{0}, last{str.size()};
-  for (auto it = str.begin(); it != str.end() && std::isspace(*it);
+  for (auto it = str.begin();
+       it != str.end() && std::isspace(static_cast<unsigned char>(*it));
        ++it, ++first) {
   }
-  for (auto it = str.rbegin();
-       it != str.rend() && last > first && std::isspace(*it); ++it, --last) {
+  for (auto it = str.rbegin(); it != str.rend() && last > first &&
+                               std::isspace(static_cast<unsigned char>(*it));
+       ++it, --last) {
   }
   return str.substr(first, last - first);
 }
 
 inline std::string_view lstrip(const std::string_view& str) {
   size_t first{0};
-  for (auto it = str.begin(); it != str.end() && std::isspace(*it);
+  for (auto it = str.begin();
+       it != str.end() && std::isspace(static_cast<unsigned char>(*it));
        ++it, ++first) {
   }
   return str.substr(first, str.size() - first);
@@ -208,7 +211,8 @@ inline std::string_view lstrip(const std::string_view& str) {
 
 inline std::string_view rstrip(const std::string_view& str) {
   size_t last{str.size()};
-  for (auto it = str.rbegin(); it != str.rend() && std::isspace(*it);
+  for (auto it = str.rbegin();
+       it != str.rend() && std::isspace(static_cast<unsigned char>(*it));
        ++it, --last) {
   }
   return str.substr(0, last);

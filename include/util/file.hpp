@@ -1,11 +1,11 @@
 #pragma once
 
-#include <string>
+#include <string_view>
 
 namespace util {
 
-/*! \brief Check if file can be read */
-bool file_exists(const std::string& file);
+/*! \brief Check if file exists */
+bool file_exists(const std::string_view& file);
 
 }  // namespace util
 

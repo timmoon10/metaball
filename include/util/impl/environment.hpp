@@ -8,7 +8,7 @@
 namespace util {
 
 template <typename T>
-inline const T getenv(const std::string& variable, const T& default_value) {
+inline T getenv(const std::string& variable, const T& default_value) {
   const char* env = std::getenv(variable.c_str());
   if (env == nullptr || env[0] == '\0') {
     return default_value;
@@ -17,7 +17,7 @@ inline const T getenv(const std::string& variable, const T& default_value) {
 }
 
 template <typename T>
-inline const T getenv(const std::string& variable) {
+inline T getenv(const std::string& variable) {
   if constexpr (std::convertible_to<T, std::string_view>) {
     return getenv<T>(variable, "");
   } else {

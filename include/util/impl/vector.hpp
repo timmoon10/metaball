@@ -178,20 +178,24 @@ inline T Vector<N, T>::norm() const {
 
 template <size_t N, typename T>
 inline constexpr T Vector<N, T>::norm2() const noexcept {
-  T result = data_[0] * data_[0];
-  UTIL_LOOP_UNROLL(N - 1)
-  for (size_t i = 1; i < N; ++i) {
-    result += data_[i] * data_[i];
+  T result{0};
+  if constexpr (N > 0) {
+    UTIL_LOOP_UNROLL(N)
+    for (size_t i = 0; i < N; ++i) {
+      result += data_[i] * data_[i];
+    }
   }
   return result;
 }
 
 template <size_t N, typename T>
 inline bool Vector<N, T>::isfinite() const noexcept {
-  bool result = std::isfinite(data_[0]);
-  UTIL_LOOP_UNROLL(N - 1)
-  for (size_t i = 1; i < N; ++i) {
-    result = result && std::isfinite(data_[i]);
+  bool result{true};
+  if constexpr (N > 0) {
+    UTIL_LOOP_UNROLL(N)
+    for (size_t i = 0; i < N; ++i) {
+      result = result && std::isfinite(data_[i]);
+    }
   }
   return result;
 }
@@ -227,10 +231,12 @@ inline constexpr Vector<N, T> min(const Vector<N, T>& a,
 
 template <size_t N, typename T>
 inline constexpr T dot(const Vector<N, T>& a, const Vector<N, T>& b) noexcept {
-  T result = a[0] * b[0];
-  UTIL_LOOP_UNROLL(N - 1)
-  for (size_t i = 1; i < N; ++i) {
-    result += a[i] * b[i];
+  T result{0};
+  if constexpr (N > 0) {
+    UTIL_LOOP_UNROLL(N)
+    for (size_t i = 0; i < N; ++i) {
+      result += a[i] * b[i];
+    }
   }
   return result;
 }
