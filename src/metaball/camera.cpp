@@ -54,8 +54,8 @@ inline Camera::ScalarType gamma_transfer_function(
 }  // namespace
 
 Camera::Camera() {
-  aperture_position_[aperture_orientation_.ndim - 1] = -4;
-  aperture_orientation_[aperture_orientation_.ndim - 1] = 1;
+  aperture_position_[2] = -4;
+  aperture_orientation_[2] = 1;
   row_orientation_[0] = 1;
   column_orientation_[1] = -1;
 }

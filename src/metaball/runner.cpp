@@ -172,7 +172,7 @@ std::string Runner::info_message() const {
   _("Runner");
   _("----------------");
   _("Timer interval: ", timer_interval_, " ms");
-  _("Movement speed: ", movement_speed_);
+  _("User movement speed: ", user_movement_speed_);
 
   // Return string
   _();
@@ -186,22 +186,22 @@ void Runner::keyPressEvent(QKeyEvent* event) {
       QApplication::quit();
       break;
     case Qt::Key_W:
-      movement_active_modes_.insert(MovementMode::Forward);
+      user_movement_active_modes_.insert(UserMovementMode::Forward);
       break;
     case Qt::Key_S:
-      movement_active_modes_.insert(MovementMode::Backward);
+      user_movement_active_modes_.insert(UserMovementMode::Backward);
       break;
     case Qt::Key_A:
-      movement_active_modes_.insert(MovementMode::Left);
+      user_movement_active_modes_.insert(UserMovementMode::Left);
       break;
     case Qt::Key_D:
-      movement_active_modes_.insert(MovementMode::Right);
+      user_movement_active_modes_.insert(UserMovementMode::Right);
       break;
     case Qt::Key_Q:
-      movement_active_modes_.insert(MovementMode::Counterclockwise);
+      user_movement_active_modes_.insert(UserMovementMode::Counterclockwise);
       break;
     case Qt::Key_E:
-      movement_active_modes_.insert(MovementMode::Clockwise);
+      user_movement_active_modes_.insert(UserMovementMode::Clockwise);
       break;
   }
 }
@@ -209,22 +209,22 @@ void Runner::keyPressEvent(QKeyEvent* event) {
 void Runner::keyReleaseEvent(QKeyEvent* event) {
   switch (event->key()) {
     case Qt::Key_W:
-      movement_active_modes_.erase(MovementMode::Forward);
+      user_movement_active_modes_.erase(UserMovementMode::Forward);
       break;
     case Qt::Key_S:
-      movement_active_modes_.erase(MovementMode::Backward);
+      user_movement_active_modes_.erase(UserMovementMode::Backward);
       break;
     case Qt::Key_A:
-      movement_active_modes_.erase(MovementMode::Left);
+      user_movement_active_modes_.erase(UserMovementMode::Left);
       break;
     case Qt::Key_D:
-      movement_active_modes_.erase(MovementMode::Right);
+      user_movement_active_modes_.erase(UserMovementMode::Right);
       break;
     case Qt::Key_Q:
-      movement_active_modes_.erase(MovementMode::Counterclockwise);
+      user_movement_active_modes_.erase(UserMovementMode::Counterclockwise);
       break;
     case Qt::Key_E:
-      movement_active_modes_.erase(MovementMode::Clockwise);
+      user_movement_active_modes_.erase(UserMovementMode::Clockwise);
       break;
   }
 }
@@ -277,7 +277,7 @@ void Runner::timer_step() {
   // Timer step stages
   timer_step_command_input();
   timer_step_camera_drag();
-  timer_step_movement(step_interval);
+  timer_step_user_movement(step_interval);
 
   // Update display if needed
   if (display_needs_update_) {
@@ -346,28 +346,28 @@ void Runner::timer_step_camera_drag() {
   }
 }
 
-void Runner::timer_step_movement(double step_interval) {
+void Runner::timer_step_user_movement(double step_interval) {
   // Return immediately if there is no movement
-  if (movement_active_modes_.empty()) {
+  if (user_movement_active_modes_.empty()) {
     return;
   }
 
   // Resolve conflicting movement modes
-  auto modes = movement_active_modes_;
-  if (modes.contains(MovementMode::Forward) &&
-      modes.contains(MovementMode::Backward)) {
-    modes.erase(MovementMode::Forward);
-    modes.erase(MovementMode::Backward);
+  auto modes = user_movement_active_modes_;
+  if (modes.contains(UserMovementMode::Forward) &&
+      modes.contains(UserMovementMode::Backward)) {
+    modes.erase(UserMovementMode::Forward);
+    modes.erase(UserMovementMode::Backward);
   }
-  if (modes.contains(MovementMode::Left) &&
-      modes.contains(MovementMode::Right)) {
-    modes.erase(MovementMode::Left);
-    modes.erase(MovementMode::Right);
+  if (modes.contains(UserMovementMode::Left) &&
+      modes.contains(UserMovementMode::Right)) {
+    modes.erase(UserMovementMode::Left);
+    modes.erase(UserMovementMode::Right);
   }
-  if (modes.contains(MovementMode::Clockwise) &&
-      modes.contains(MovementMode::Counterclockwise)) {
-    modes.erase(MovementMode::Clockwise);
-    modes.erase(MovementMode::Counterclockwise);
+  if (modes.contains(UserMovementMode::Clockwise) &&
+      modes.contains(UserMovementMode::Counterclockwise)) {
+    modes.erase(UserMovementMode::Clockwise);
+    modes.erase(UserMovementMode::Counterclockwise);
   }
   if (modes.empty()) {
     return;
@@ -385,25 +385,25 @@ void Runner::timer_step_movement(double step_interval) {
 
   // Translations
   const auto movement_distance =
-      static_cast<Camera::ScalarType>(movement_speed_ * step_interval);
-  if (modes.contains(MovementMode::Forward)) {
+      static_cast<Camera::ScalarType>(user_movement_speed_ * step_interval);
+  if (modes.contains(UserMovementMode::Forward)) {
     position += forward_orientation * movement_distance;
   }
-  if (modes.contains(MovementMode::Backward)) {
+  if (modes.contains(UserMovementMode::Backward)) {
     position -= forward_orientation * movement_distance;
   }
-  if (modes.contains(MovementMode::Left)) {
+  if (modes.contains(UserMovementMode::Left)) {
     position -= right_orientation * movement_distance;
   }
-  if (modes.contains(MovementMode::Right)) {
+  if (modes.contains(UserMovementMode::Right)) {
     position += right_orientation * movement_distance;
   }
 
   // Rotations
-  if (modes.contains(MovementMode::Clockwise) ||
-      modes.contains(MovementMode::Counterclockwise)) {
+  if (modes.contains(UserMovementMode::Clockwise) ||
+      modes.contains(UserMovementMode::Counterclockwise)) {
     auto rotation = movement_distance * std::numbers::pi;
-    if (modes.contains(MovementMode::Clockwise)) {
+    if (modes.contains(UserMovementMode::Clockwise)) {
       rotation = -rotation;
     }
     const auto sin = std::sin(rotation);
@@ -524,7 +524,7 @@ void Runner::run_command(const std::string_view& name,
   if (name == "movement speed") {
     auto val = util::from_string<Camera::ScalarType>(params);
     UTIL_CHECK(val > 0, "Invalid movement speed (", val, ")");
-    movement_speed_ = val;
+    user_movement_speed_ = val;
     return;
   }
 
