@@ -581,7 +581,7 @@ void Runner::run_command(const std::string_view& name,
         drift_velocity_ /= std::sqrt(Camera::VectorType::ndim - 3);
       }
     } else {
-      UTIL_ERROR("Unrecognized drift type: ", param, "\n");
+      UTIL_ERROR("Unrecognized drift type: ", params, "\n");
     }
     return;
   }

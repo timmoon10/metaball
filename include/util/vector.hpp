@@ -26,6 +26,7 @@ class Vector {
    * The number of values must match the number of vector dimensions.
    */
   template <typename... Ts>
+    requires(sizeof...(Ts) == NDim && (std::convertible_to<Ts, Scalar> && ...))
   constexpr Vector(Ts... values) noexcept;
 
   /*! \brief Swap data between two vectors */

@@ -24,6 +24,7 @@ inline constexpr Vector<N, T>::Vector() noexcept {
 
 template <size_t N, typename T>
 template <typename... Ts>
+  requires(sizeof...(Ts) == N && (std::convertible_to<Ts, T> && ...))
 inline constexpr Vector<N, T>::Vector(Ts... values) noexcept
     : data_{static_cast<T>(values)...} {
   static_assert(sizeof...(values) == N,
