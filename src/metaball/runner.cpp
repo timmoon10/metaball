@@ -404,7 +404,7 @@ void Runner::timer_step_user_movement(double step_interval) {
   // Rotations
   if (modes.contains(UserMovementMode::Clockwise) ||
       modes.contains(UserMovementMode::Counterclockwise)) {
-    auto rotation = 2 * std::numbers::pi * movement_distance;
+    auto rotation = std::numbers::pi / 2 * movement_distance;
     if (modes.contains(UserMovementMode::Clockwise)) {
       rotation = -rotation;
     }
@@ -546,13 +546,43 @@ void Runner::run_command(const std::string_view& name,
     user_movement_speed_ = val;
     return;
   }
-  if (name == "random drift") {
-    drift_velocity_ = random::randn<Camera::VectorType>();
-    drift_velocity_ /= std::sqrt(Camera::VectorType::ndim);
-    return;
-  }
   if (name == "reset drift") {
     drift_velocity_.zero();
+    return;
+  }
+  if (name == "set drift") {
+    if (params == "zero") {
+      drift_velocity_.zero();
+    } else if (params == "forward") {
+      drift_velocity_ = camera_.aperture_orientation() * user_movement_speed_;
+    } else if (params == "random") {
+      drift_velocity_ = random::randn<Camera::VectorType>();
+      drift_velocity_ /= std::sqrt(Camera::VectorType::ndim);
+    } else if (params == "camera plane") {
+      const auto& axis0 = camera_.aperture_orientation();
+      const auto& axis1 = camera_.row_orientation();
+      const auto& axis2 = camera_.column_orientation();
+      drift_velocity_ = random::randn<Camera::VectorType>();
+      drift_velocity_ = (util::dot(drift_velocity_, axis0) * axis0 +
+                         util::dot(drift_velocity_, axis1) * axis1 +
+                         util::dot(drift_velocity_, axis2) * axis2);
+      drift_velocity_ /= std::sqrt(3);
+    } else if (params == "camera perpendicular") {
+      if (Camera::VectorType::ndim <= 3) {
+        drift_velocity_.zero();
+      } else {
+        const auto& axis0 = camera_.aperture_orientation();
+        const auto& axis1 = camera_.row_orientation();
+        const auto& axis2 = camera_.column_orientation();
+        drift_velocity_ = random::randn<Camera::VectorType>();
+        drift_velocity_ -= util::dot(drift_velocity_, axis2) * axis2;
+        drift_velocity_ -= util::dot(drift_velocity_, axis1) * axis1;
+        drift_velocity_ -= util::dot(drift_velocity_, axis0) * axis0;
+        drift_velocity_ /= std::sqrt(Camera::VectorType::ndim - 3);
+      }
+    } else {
+      UTIL_ERROR("Unrecognized drift type: ", param, "\n");
+    }
     return;
   }
 
