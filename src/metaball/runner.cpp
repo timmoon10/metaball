@@ -26,6 +26,7 @@
 #include "metaball/camera.hpp"
 #include "metaball/image.hpp"
 #include "metaball/integrator.hpp"
+#include "metaball/random.hpp"
 #include "metaball/scene.hpp"
 #include "util/string.hpp"
 #include "util/vector.hpp"
@@ -278,6 +279,7 @@ void Runner::timer_step() {
   timer_step_command_input();
   timer_step_camera_drag();
   timer_step_user_movement(step_interval);
+  timer_step_drift_movement(step_interval);
 
   // Update display if needed
   if (display_needs_update_) {
@@ -402,7 +404,7 @@ void Runner::timer_step_user_movement(double step_interval) {
   // Rotations
   if (modes.contains(UserMovementMode::Clockwise) ||
       modes.contains(UserMovementMode::Counterclockwise)) {
-    auto rotation = movement_distance * std::numbers::pi;
+    auto rotation = 2 * std::numbers::pi * movement_distance;
     if (modes.contains(UserMovementMode::Clockwise)) {
       rotation = -rotation;
     }
@@ -428,6 +430,17 @@ void Runner::timer_step_user_movement(double step_interval) {
 
   // Update display
   display_needs_update_ = true;
+}
+
+void Runner::timer_step_drift_movement(double step_interval) {
+  // Update position if drift velocity is non-zero
+  if (drift_velocity_.norm2() > 0) {
+    auto position = camera_.aperture_position();
+    position += step_interval * drift_velocity_;
+    camera_.set_aperture_position(position);
+    ;
+    display_needs_update_ = true;
+  }
 }
 
 void Runner::run_command(const std::string_view& name,
@@ -473,6 +486,12 @@ void Runner::run_command(const std::string_view& name,
   }
   if (Camera::is_adjust_shot_type(name)) {
     camera_.adjust_shot(name, util::from_string<ScalarType>(params));
+    return;
+  }
+  if (name == "random orientation") {
+    camera_.set_orientation(random::randn<Camera::VectorType>(),
+                            random::randn<Camera::VectorType>(),
+                            random::randn<Camera::VectorType>());
     return;
   }
 
@@ -525,6 +544,15 @@ void Runner::run_command(const std::string_view& name,
     auto val = util::from_string<Camera::ScalarType>(params);
     UTIL_CHECK(val > 0, "Invalid movement speed (", val, ")");
     user_movement_speed_ = val;
+    return;
+  }
+  if (name == "random drift") {
+    drift_velocity_ = random::randn<Camera::VectorType>();
+    drift_velocity_ /= std::sqrt(Camera::VectorType::ndim);
+    return;
+  }
+  if (name == "reset drift") {
+    drift_velocity_.zero();
     return;
   }
 

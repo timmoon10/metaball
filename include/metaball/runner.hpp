@@ -75,10 +75,13 @@ class Runner : public QWidget {
   Camera::ScalarType user_movement_speed_{1};
   std::unordered_set<UserMovementMode> user_movement_active_modes_;
 
+  Camera::VectorType drift_velocity_;
+
   void timer_step();
   void timer_step_command_input();
   void timer_step_camera_drag();
   void timer_step_user_movement(double step_interval);
+  void timer_step_drift_movement(double step_interval);
 
   void run_command(const std::string_view& command,
                    const std::string_view& params);
