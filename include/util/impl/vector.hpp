@@ -10,7 +10,7 @@
 #if defined(__clang__)
 #define UTIL_LOOP_UNROLL(n) UTIL_DO_PRAGMA(unroll(n))
 #elif defined(__GNUC__)
-#define UTIL_LOOP_UNROLL(n) UTIL_DO_PRAGMA(GCC unroll(n))
+#define UTIL_LOOP_UNROLL(n)
 #else
 #define UTIL_LOOP_UNROLL(n) UTIL_DO_PRAGMA(unroll(n))
 #endif
