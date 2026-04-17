@@ -15,7 +15,7 @@ class SceneElement;
 
 class Scene {
  public:
-  static constexpr size_t ndim = 3;
+  static constexpr size_t ndim = 4;
   using ScalarType = Integrator::ScalarType;
   using VectorType = util::Vector<ndim, ScalarType>;
 

@@ -229,7 +229,7 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
     std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components;
     for (size_t i = 0; i < num_sinusoids; ++i) {
       // Sample frequency
-      const ScalarType max_frequency = 2.0;
+      const ScalarType max_frequency = 4.0;
       const ScalarType power_decay = 2.0;
       const ScalarType rand_exponent = 1.0 / (VectorType::ndim - power_decay / 2);
       const auto frequency = max_frequency * std::pow(random::rand<ScalarType>(), rand_exponent);
