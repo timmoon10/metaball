@@ -51,6 +51,7 @@ class Runner : public QWidget {
 
   QTimer timer_;
   size_t timer_interval_{50};  // milliseconds
+  bool with_adaptive_time_step_{true};
   std::chrono::high_resolution_clock::time_point last_step_time_;
   bool display_needs_update_{false};
 
@@ -86,6 +87,8 @@ class Runner : public QWidget {
   void run_command(const std::string_view& command,
                    const std::string_view& params);
   void update_mouse_position(const QMouseEvent& event);
+
+  void save_video(const std::string_view& file, double seconds);
 };
 
 }  // namespace metaball

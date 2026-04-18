@@ -12,7 +12,9 @@
 #include <QtWidgets>
 #include <chrono>
 #include <cmath>
+#include <cstdio>
 #include <iostream>
+#include <memory>
 #include <mutex>
 #include <numbers>
 #include <ostream>
@@ -267,13 +269,13 @@ void Runner::timer_step() {
   // Compute time since last step
   double step_interval =
       static_cast<double>(timer_interval_) / 1000;  // seconds
-  {
-    const auto current_step_time = std::chrono::high_resolution_clock::now();
+  const auto current_step_time = std::chrono::high_resolution_clock::now();
+  if (with_adaptive_time_step_) {
     const std::chrono::duration<double> measured_duration =
         current_step_time - last_step_time_;
     step_interval = std::max(step_interval, measured_duration.count());
-    last_step_time_ = current_step_time;
   }
+  last_step_time_ = current_step_time;
 
   // Timer step stages
   timer_step_command_input();
@@ -468,6 +470,22 @@ void Runner::run_command(const std::string_view& name,
     const std::string file =
         params.empty() ? "metaball.png" : std::string(params);
     static_cast<QImage>(image).save(QString(file.data()));
+    std::cout << util::concat_strings("Saved image at ", file, "\n")
+              << std::flush;
+    return;
+  }
+  if (name == "save video") {
+    const auto& params_split = util::split(params, ",");
+    const std::string file =
+        params.empty() ? "metaball.mp4" : std::string(params_split[0]);
+    const double seconds = params_split.size() < 2
+                               ? 4
+                               : util::from_string<double>(params_split[1]);
+    std::cout << util::concat_strings("Recording ", seconds, " sec...\n")
+              << std::flush;
+    save_video(file, seconds);
+    std::cout << util::concat_strings("Saved video at ", file, "\n")
+              << std::flush;
     return;
   }
 
@@ -597,6 +615,63 @@ void Runner::update_mouse_position(const QMouseEvent& event) {
   const auto& y = position.y();
   if (0 <= x && x < width() && 0 <= y && y < height()) {
     mouse_position_ = {static_cast<size_t>(y), static_cast<size_t>(x)};
+  }
+}
+
+void Runner::save_video(const std::string_view& file, double seconds) {
+  const auto frame_rate =
+      static_cast<size_t>(std::round(1000. / timer_interval_));
+  const auto frames = static_cast<size_t>(frame_rate * seconds);
+
+  // FFmpeg invocation
+  const auto command = util::concat_strings(
+      "ffmpeg -y -f rawvideo -pixel_format rgb24 -video_size ", width(), "x",
+      height(), " -framerate ", frame_rate, " -i pipe:0 -pix_fmt yuv420p ",
+      file);
+
+  // Open pipe and store in RAII wrapper
+  auto close_pipe = [](FILE* stream) {
+    if (stream != nullptr) {
+      pclose(stream);
+    }
+  };
+  using PipeType = std::unique_ptr<FILE, decltype(close_pipe)>;
+  PipeType pipe(popen(command.c_str(), "w"), close_pipe);
+  UTIL_CHECK(pipe != nullptr, "Failed to open FFmpeg pipe");
+
+  // RAII class to pause timer
+  struct TimerPause {
+    Runner& runner_;
+    bool cached_with_adaptive_time_step_;
+
+    TimerPause(Runner& runner)
+        : runner_{runner},
+          cached_with_adaptive_time_step_{runner.with_adaptive_time_step_} {
+      runner_.timer_.stop();
+      runner_.with_adaptive_time_step_ = false;
+    }
+    TimerPause(const TimerPause&) = delete;
+    TimerPause& operator=(const TimerPause&) = delete;
+    ~TimerPause() {
+      runner_.with_adaptive_time_step_ = cached_with_adaptive_time_step_;
+      runner_.timer_.start(runner_.timer_interval_);
+    }
+  };
+
+  // Pause timer
+  TimerPause pause(*this);
+
+  // Manually perform time steps and pipe images to FFmpeg
+  for (size_t step = 0; step < frames; ++step) {
+    if (step > 0) {
+      timer_step();
+    }
+    repaint();
+    const auto px = grab();
+    const auto img = px.toImage().convertToFormat(QImage::Format_RGB888);
+    for (int row = 0; row < height(); ++row) {
+      std::fwrite(img.constScanLine(row), 1, width() * 3, pipe.get());
+    }
   }
 }
 

@@ -208,7 +208,8 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
     // wavenumber k=f*omega, with frequency f and orientation omega,
     // we can convert the integral to spherical coordinates:
     //
-    //   i(x) = integral(sin(2*pi*k*x+phi) / f^(gamma/2) * f^(N-1) * df * domega)
+    //   i(x) = integral(sin(2*pi*k*x+phi) / f^(gamma/2) * f^(N-1)
+    //                   * df * domega)
     //        = integral(sin(2*pi*k*x+phi) * f^(N-gamma/2-1) * df * domega)
     //
     // Substituting u = (f/f_max)^(N-gamma/2):
@@ -231,15 +232,18 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
       // Sample frequency
       const ScalarType max_frequency = 4.0;
       const ScalarType power_decay = 2.0;
-      const ScalarType rand_exponent = 1.0 / (VectorType::ndim - power_decay / 2);
-      const auto frequency = max_frequency * std::pow(random::rand<ScalarType>(), rand_exponent);
+      const ScalarType rand_exponent =
+          1.0 / (VectorType::ndim - power_decay / 2);
+      const auto frequency =
+          max_frequency * std::pow(random::rand<ScalarType>(), rand_exponent);
 
       // Sample orientation
       VectorType orientation = random::randn<VectorType>().unit();
 
       // Construct wave vector and phase
       auto wave_vector = orientation * frequency;
-      const ScalarType phase = 2 * std::numbers::pi * random::rand<ScalarType>();
+      const ScalarType phase =
+          2 * std::numbers::pi * random::rand<ScalarType>();
       const ScalarType amplitude = 1.0 / num_sinusoids;
       components.emplace_back(wave_vector, phase, amplitude);
     }
