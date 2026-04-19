@@ -2,10 +2,11 @@
 #include <array>
 #include <cmath>
 #include <concepts>
-#include <tuple>
 #include <utility>
 
 #include "util/error.hpp"
+#include "util/functional.hpp"
+#include "util/meta.hpp"
 
 // Macro for loop unroll
 #define UTIL_DO_PRAGMA(arg) _Pragma(#arg)
@@ -269,27 +270,13 @@ inline void make_orthonormal_reversed(VectorT& head, VectorTs&... tail) {
   head = head.unit();
 }
 
-template <typename Func, typename Args, size_t... Idxs>
-inline auto apply_permuted_args(Func&& func, Args&& args,
-                                std::index_sequence<Idxs...>) {
-  constexpr size_t num_idxs = sizeof...(Idxs);
-  return std::forward<Func>(func)(std::get<num_idxs - 1 - Idxs>(args)...);
-}
-
-template <typename Func, typename... Args>
-inline auto apply_reversed_args(Func&& func, Args&&... args) {
-  return apply_permuted_args(std::forward<Func>(func),
-                             std::forward_as_tuple(std::forward<Args>(args)...),
-                             std::index_sequence_for<Args...>{});
-}
-
 }  // namespace vector
 }  // namespace impl
 
 template <concepts::vector... VectorTs>
   requires(concepts::homogeneous<VectorTs...>)
 inline void make_orthonormal(VectorTs&... vs) {
-  impl::vector::apply_reversed_args(
+  apply_reversed_args(
       [](auto&... vs) { impl::vector::make_orthonormal_reversed(vs...); },
       vs...);
 }

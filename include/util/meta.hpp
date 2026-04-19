@@ -4,6 +4,7 @@
 
 namespace util {
 
+// Type traits for whether template arguments are all the same
 template <typename...>
 inline constexpr bool are_all_same_v = true;  // Match empty pack
 template <typename T, typename... Ts>
