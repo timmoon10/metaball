@@ -130,6 +130,10 @@ class MultiSinusoidSceneElement : public SceneElement {
 
   std::string describe() const override;
 
+  static std::unique_ptr<MultiSinusoidSceneElement> make_power_spectrum_decay(
+      size_t num_components, ScalarType frequency_cutoff,
+      ScalarType decay_factor);
+
  private:
   std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components_;
 };

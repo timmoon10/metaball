@@ -186,68 +186,20 @@ std::unique_ptr<SceneElement> SceneElement::make_element(
                         : util::from_string<ScalarType>(params));
     return std::make_unique<MinusExpSceneElement>(VectorType{}, dist_scale);
   }
-  if (type == "natural power spectrum") {
-    // Natural 2D images have been observed to have power spectra
-    // roughly proportional to 1/f^gamma with gamma~2, up to a
-    // resolution limit f_max. Since the power spectrum is the
-    // norm-square of the Fourier transform, this implies a frequency
-    // distribution of 1/f^(gamma/2). If such an image is a projection
-    // of an N-d space, the projection-slice theorem implies that the
-    // N-d space also has the same frequency distribution.
-    //
-    // We wish to emulate natural images based on this frequency
-    // distribution. For laziness, we'll take some shortcuts in the
-    // following math like dropping constants and ignoring parts of
-    // complex numbers. Now, let's apply an inverse Fourier transform
-    // to the frequency distribution:
-    //
-    //   i(x) = integral(sin(2*pi*k*x+phi) / norm(k)^(gamma/2) * dk)
-    //
-    // k is the wavenumber (integrated over a ball with radius f_max)
-    // and phi is the phase (a function wrt k). If we represent the
-    // wavenumber k=f*omega, with frequency f and orientation omega,
-    // we can convert the integral to spherical coordinates:
-    //
-    //   i(x) = integral(sin(2*pi*k*x+phi) / f^(gamma/2) * f^(N-1)
-    //                   * df * domega)
-    //        = integral(sin(2*pi*k*x+phi) * f^(N-gamma/2-1) * df * domega)
-    //
-    // Substituting u = (f/f_max)^(N-gamma/2):
-    //
-    //   i(x) = integral(sin(2*pi*k*x+phi) * du * domega)
-    //
-    // Note that u is integrated over the unit interval and omega over
-    // the unit sphere.
-    //
-    // We now have everything needed for a Monte Carlo integrator with
-    // importance sampling. Sampling u and omega uniform-randomly:
-    //
-    //   i(x) = 1/n * sum(sin(2*pi*k*x+phi))
-    //
-    // where k=f_max*u^(1/(N-gamma/2))*omega.
-    const size_t num_sinusoids =
-        params.empty() ? 8 : util::from_string<size_t>(params);
-    std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components;
-    for (size_t i = 0; i < num_sinusoids; ++i) {
-      // Sample frequency
-      const ScalarType max_frequency = 4.0;
-      const ScalarType power_decay = 2.0;
-      const ScalarType rand_exponent =
-          1.0 / (VectorType::ndim - power_decay / 2);
-      const auto frequency =
-          max_frequency * std::pow(random::rand<ScalarType>(), rand_exponent);
-
-      // Sample orientation
-      VectorType orientation = random::randn<VectorType>().unit();
-
-      // Construct wave vector and phase
-      auto wave_vector = orientation * frequency;
-      const ScalarType phase =
-          2 * std::numbers::pi * random::rand<ScalarType>();
-      const ScalarType amplitude = 1.0 / num_sinusoids;
-      components.emplace_back(wave_vector, phase, amplitude);
-    }
-    return std::make_unique<MultiSinusoidSceneElement>(components);
+  if (type == "power decay") {
+    const auto& params_split = util::split(params, ",");
+    const size_t num_components =
+        params.empty() ? 8 : util::from_string<size_t>(params_split[0]);
+    const ScalarType frequency_cutoff =
+        params_split.size() < 2
+            ? 4.0
+            : util::from_string<ScalarType>(params_split[1]);
+    const ScalarType decay_factor =
+        params_split.size() < 3
+            ? 2.0
+            : util::from_string<ScalarType>(params_split[2]);
+    return MultiSinusoidSceneElement::make_power_spectrum_decay(
+        num_components, frequency_cutoff, decay_factor);
   }
   if (type == "moire") {
     const size_t num_sinusoids =
@@ -367,7 +319,7 @@ SinusoidSceneElement::ScalarType SinusoidSceneElement::operator()(
     const VectorType& position) const {
   constexpr ScalarType two_pi = 2 * std::numbers::pi;
   ScalarType result = amplitude_;
-  result *= std::sin(two_pi * (util::dot(position, wave_vector_) + phase_));
+  result *= std::cos(two_pi * (util::dot(position, wave_vector_) + phase_));
   return result;
 }
 
@@ -387,7 +339,7 @@ MultiSinusoidSceneElement::ScalarType MultiSinusoidSceneElement::operator()(
   constexpr ScalarType two_pi = 2 * std::numbers::pi;
   for (const auto& [wave_vector, phase, amplitude] : components_) {
     result += amplitude *
-              std::sin(two_pi * (util::dot(position, wave_vector) + phase));
+              std::cos(two_pi * (util::dot(position, wave_vector) + phase));
   }
   return result;
 }
@@ -396,6 +348,72 @@ std::string MultiSinusoidSceneElement::describe() const {
   return util::concat_strings(
       "MultiSinusoidSceneElement (components=", components_, ")");
 }
+
+std::unique_ptr<MultiSinusoidSceneElement>
+MultiSinusoidSceneElement::make_power_spectrum_decay(
+    size_t num_components, ScalarType frequency_cutoff,
+    ScalarType decay_factor) {
+  // Natural 2D images have been observed to have power spectra
+  // roughly proportional to 1/f^alpha with alpha~2, up to a
+  // resolution limit f_max. Since the power spectrum is the
+  // magnitude-square of the Fourier transform, this implies a
+  // frequency distribution of 1/f^(alpha/2). If such an image is a
+  // projection of an N-d space, the projection-slice theorem implies
+  // that the N-d space also has the same frequency distribution.
+  //
+  // We wish to emulate natural images based on this frequency
+  // distribution. For laziness, we'll take some shortcuts in the
+  // following math like dropping constants and ignoring imaginary
+  // components. Now, let's apply an inverse Fourier transform to the
+  // frequency distribution:
+  //
+  //   i(x) = integral(cos(2*pi*k*x+phi) / norm(k)^(alpha/2) * dk)
+  //
+  // k is the wavenumber (integrated over a ball with radius f_max)
+  // and phi is the phase (a function wrt k). If we represent the
+  // wavenumber k=f*omega, with frequency f and orientation omega, we
+  // can convert the integral to spherical coordinates:
+  //
+  //   i(x) = integral(cos(2*pi*k*x+phi) / f^(alpha/2) * f^(N-1) * df * domega)
+  //        = integral(cos(2*pi*k*x+phi) * f^(N-alpha/2-1) * df * domega)
+  //
+  // Substituting u = (f/f_max)^(N-alpha/2):
+  //
+  //   i(x) = integral(cos(2*pi*k*x+phi) * du * domega)
+  //
+  // Note that u is integrated over the unit interval and omega over
+  // the unit sphere.
+  //
+  // We now have everything needed for a Monte Carlo integrator with
+  // importance sampling. Sampling u and omega uniform-randomly:
+  //
+  //   i(x) = 1/n * sum(cos(2*pi*k*x+phi))
+  //
+  // where k=f_max*u^(1/(N-alpha/2))*omega.
+
+  // Construct Fourier components
+  std::vector<std::tuple<VectorType, ScalarType, ScalarType>> components;
+  for (size_t i = 0; i < num_components; ++i) {
+    // Sample frequency
+    const auto rand = random::rand<ScalarType>();
+    const auto rand_exponent = 1.0 / (VectorType::ndim - decay_factor / 2);
+    const ScalarType frequency =
+        frequency_cutoff * std::pow(rand, rand_exponent);
+
+    // Sample orientation
+    const VectorType orientation = random::randn<VectorType>().unit();
+
+    // Sample phase
+    const ScalarType phase = 2 * std::numbers::pi * random::rand<ScalarType>();
+
+    // Construct Fourier component
+    const ScalarType amplitude = 1.0 / num_components;
+    components.emplace_back(frequency * orientation, phase, amplitude);
+  }
+
+  // Construct scene element with Fourier components
+  return std::make_unique<MultiSinusoidSceneElement>(components);
+};
 
 RadialSinusoidSceneElement::RadialSinusoidSceneElement(
     const VectorType& center, const ScalarType& frequency,
@@ -409,7 +427,7 @@ RadialSinusoidSceneElement::ScalarType RadialSinusoidSceneElement::operator()(
     const VectorType& position) const {
   constexpr ScalarType two_pi = 2 * std::numbers::pi;
   const auto& r = (position - center_).norm();
-  return amplitude_ * std::sin(two_pi * frequency_ * r + phase_);
+  return amplitude_ * std::cos(two_pi * frequency_ * r + phase_);
 }
 
 std::string RadialSinusoidSceneElement::describe() const {
@@ -438,7 +456,7 @@ PolarSinusoidSceneElement::ScalarType PolarSinusoidSceneElement::operator()(
   const auto& cos_theta = util::dot(pos / r, orientation_);
   const auto& theta = std::acos(std::clamp(cos_theta, -one, one));
   return amplitude_ *
-         std::sin(two_pi * (radial_frequency_ * r + polar_frequency_ * theta) +
+         std::cos(two_pi * (radial_frequency_ * r + polar_frequency_ * theta) +
                   phase_);
 }
 
