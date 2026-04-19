@@ -103,7 +103,7 @@ constexpr Vector<N, T> cross(const Vector<N, T>& a,
 /*! \brief Convert vectors to orthonormal basis */
 template <size_t N, typename T, typename... VectorTypes>
   requires(std::same_as<VectorTypes, Vector<N, T>> && ...)
-void make_orthonormal(VectorTypes&... vector);
+void make_orthonormal(VectorTypes&... vectors);
 
 }  // namespace util
 

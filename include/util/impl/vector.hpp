@@ -2,6 +2,8 @@
 #include <array>
 #include <cmath>
 #include <concepts>
+#include <tuple>
+#include <utility>
 
 #include "util/error.hpp"
 
@@ -253,6 +255,44 @@ inline constexpr Vector<N, T> cross(const Vector<N, T>& a,
   return result;
 }
 
+namespace impl {
+namespace vector {
+
+inline void make_orthonormal_reversed() {}
+
+template <size_t N, typename T, typename... VectorTypes>
+  requires(std::same_as<VectorTypes, Vector<N, T>> && ...)
+inline void make_orthonormal_reversed(Vector<N, T>& head,
+                                      VectorTypes&... tail) {
+  static_assert(sizeof...(tail) + 1 <= N,
+                "Can't make orthonormal basis since number of vectors is "
+                "larger than vector dimension");
+  make_orthonormal_reversed(tail...);
+  ((head -= util::dot(tail, head) * tail), ...);
+  head = head.unit();
+}
+
+template <typename Func, typename Args, size_t... Idxs>
+inline auto apply_permuted_args(Func&& func, Args&& args,
+                                std::index_sequence<Idxs...>) {
+  constexpr size_t num_idxs = sizeof...(Idxs);
+  if constexpr (num_idxs == 0) {
+    return std::forward<Func>(func)();
+  } else {
+    return std::forward<Func>(func)(std::get<num_idxs - 1 - Idxs>(args)...);
+  }
+}
+
+template <typename Func, typename... Args>
+inline auto apply_reversed_args(Func&& func, Args&&... args) {
+  return apply_permuted_args(std::forward<Func>(func),
+                             std::forward_as_tuple(std::forward<Args>(args)...),
+                             std::index_sequence_for<Args...>{});
+}
+
+}  // namespace vector
+}  // namespace impl
+
 inline void make_orthonormal() {}
 
 template <size_t N, typename T, typename... VectorTypes>
@@ -261,9 +301,9 @@ inline void make_orthonormal(Vector<N, T>& head, VectorTypes&... tail) {
   static_assert(sizeof...(tail) + 1 <= N,
                 "Can't make orthonormal basis since number of vectors is "
                 "larger than vector dimension");
-  make_orthonormal(tail...);
-  ((head -= util::dot(tail, head) * tail), ...);
-  head = head.unit();
+  impl::vector::apply_reversed_args([] (auto&... vs) {
+    impl::vector::make_orthonormal_reversed(vs...);
+  }, head, tail...);
 }
 
 }  // namespace util

@@ -104,20 +104,20 @@ void Camera::set_aperture_position(const VectorType& position) {
 
 void Camera::set_aperture_orientation(const VectorType& orientation) {
   aperture_orientation_ = orientation;
-  util::make_orthonormal(column_orientation_, row_orientation_,
-                         aperture_orientation_);
+  util::make_orthonormal(aperture_orientation_, row_orientation_,
+                         column_orientation_);
 }
 
 void Camera::set_row_orientation(const VectorType& orientation) {
   row_orientation_ = orientation;
-  util::make_orthonormal(column_orientation_, aperture_orientation_,
-                         row_orientation_);
+  util::make_orthonormal(row_orientation_, aperture_orientation_,
+                         column_orientation_);
 }
 
 void Camera::set_column_orientation(const VectorType& orientation) {
   column_orientation_ = orientation;
-  util::make_orthonormal(row_orientation_, aperture_orientation_,
-                         column_orientation_);
+  util::make_orthonormal(column_orientation_, aperture_orientation_,
+                         row_orientation_);
 }
 
 void Camera::set_focal_length(const ScalarType& focal_length) {
@@ -138,8 +138,8 @@ void Camera::set_orientation(const VectorType& aperture_orientation,
   aperture_orientation_ = aperture_orientation;
   row_orientation_ = row_orientation;
   column_orientation_ = column_orientation;
-  util::make_orthonormal(column_orientation_, row_orientation_,
-                         aperture_orientation_);
+  util::make_orthonormal(aperture_orientation_, row_orientation_,
+                         column_orientation_);
 }
 
 Camera::VectorType Camera::pixel_orientation(size_t row, size_t col,
@@ -213,13 +213,13 @@ void Camera::set_pixel_orientation(size_t row, size_t col, size_t height,
   rotate(aperture_orientation_);
   rotate(row_orientation_);
   rotate(column_orientation_);
-  util::make_orthonormal(column_orientation_, row_orientation_,
-                         aperture_orientation_);
+  util::make_orthonormal(aperture_orientation_, row_orientation_,
+                         column_orientation_);
 }
 
 void Camera::adjust_shot(const std::string_view& type, ScalarType amount) {
-  util::make_orthonormal(column_orientation_, row_orientation_,
-                         aperture_orientation_);
+  util::make_orthonormal(aperture_orientation_, row_orientation_,
+                         column_orientation_);
   if (type == "move forward" || type == "move backward") {
     if (type == "move backward") {
       amount *= -1;
@@ -262,8 +262,8 @@ void Camera::adjust_shot(const std::string_view& type, ScalarType amount) {
   } else {
     UTIL_ERROR("Unsupported shot adjustment (", type, ")");
   }
-  util::make_orthonormal(column_orientation_, row_orientation_,
-                         aperture_orientation_);
+  util::make_orthonormal(aperture_orientation_, row_orientation_,
+                         column_orientation_);
 }
 
 bool Camera::is_adjust_shot_type(const std::string_view& type) {
