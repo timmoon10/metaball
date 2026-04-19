@@ -3,10 +3,28 @@
 #include <array>
 #include <concepts>
 
+#include "util/meta.hpp"
+
 namespace util {
 
-/*! \brief Real vector */
 template <size_t NDim, typename Scalar = double>
+class Vector;
+
+template <typename T>
+inline constexpr bool is_vector_v = false;
+template <size_t NDim, typename Scalar>
+inline constexpr bool is_vector_v<Vector<NDim, Scalar>> = true;
+
+namespace concepts {
+
+/*! \brief Whether a type is an instantiation of Vector */
+template <typename T>
+concept vector = is_vector_v<T>;
+
+}  // namespace concepts
+
+/*! \brief Real vector */
+template <size_t NDim, typename Scalar>
 class Vector {
  public:
   /*! \brief Number of vector dimensions */
@@ -30,8 +48,8 @@ class Vector {
   constexpr Vector(Ts... values) noexcept;
 
   /*! \brief Swap data between two vectors */
-  template <size_t N, typename T>
-  friend constexpr void swap(Vector<N, T>& a, Vector<N, T>& b) noexcept;
+  template <concepts::vector VectorT>
+  friend constexpr void swap(VectorT& a, VectorT& b) noexcept;
 
   /*! \brief Get vector element */
   constexpr Scalar& operator[](size_t i);
@@ -48,9 +66,8 @@ class Vector {
   constexpr Vector& operator-=(const Vector& other) noexcept;
   constexpr Vector& operator*=(const Scalar& other) noexcept;
   constexpr Vector& operator/=(const Scalar& other) noexcept;
-  template <size_t N, typename S, typename T>
-  friend constexpr Vector<N, T> operator*(const S& a,
-                                          const Vector<N, T>& b) noexcept;
+  template <concepts::vector VectorT, typename S>
+  friend constexpr VectorT operator*(const S& a, const VectorT& b) noexcept;
 
   /*! \brief Cast to underlying data container */
   constexpr operator ContainerType() const noexcept;
@@ -80,30 +97,28 @@ class Vector {
 };
 
 /*! \brief Entry-wise maximum */
-template <size_t N, typename T>
-constexpr Vector<N, T> max(const Vector<N, T>& a,
-                           const Vector<N, T>& b) noexcept;
+template <concepts::vector VectorT>
+constexpr VectorT max(const VectorT& a, const VectorT& b) noexcept;
 /*! \brief Entry-wise minimum */
-template <size_t N, typename T>
-constexpr Vector<N, T> min(const Vector<N, T>& a,
-                           const Vector<N, T>& b) noexcept;
+template <concepts::vector VectorT>
+constexpr VectorT min(const VectorT& a, const VectorT& b) noexcept;
 
 /*! \brief Dot product */
-template <size_t N, typename T>
-constexpr T dot(const Vector<N, T>& a, const Vector<N, T>& b) noexcept;
+template <concepts::vector VectorT>
+constexpr VectorT::ScalarType dot(const VectorT& a, const VectorT& b) noexcept;
 
 /*! \brief Cross product
  *
  * Only supported with 3D vectors.
  */
-template <size_t N, typename T>
-constexpr Vector<N, T> cross(const Vector<N, T>& a,
-                             const Vector<N, T>& b) noexcept;
+template <concepts::vector VectorT>
+  requires(VectorT::ndim == 3)
+constexpr VectorT cross(const VectorT& a, const VectorT& b) noexcept;
 
 /*! \brief Convert vectors to orthonormal basis */
-template <size_t N, typename T, typename... VectorTypes>
-  requires(std::same_as<VectorTypes, Vector<N, T>> && ...)
-void make_orthonormal(VectorTypes&... vectors);
+template <concepts::vector... VectorTs>
+  requires(concepts::homogeneous<VectorTs...>)
+void make_orthonormal(VectorTs&... vs);
 
 }  // namespace util
 

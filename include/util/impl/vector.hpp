@@ -28,13 +28,10 @@ template <size_t N, typename T>
 template <typename... Ts>
   requires(sizeof...(Ts) == N && (std::convertible_to<Ts, T> && ...))
 inline constexpr Vector<N, T>::Vector(Ts... values) noexcept
-    : data_{static_cast<T>(values)...} {
-  static_assert(sizeof...(values) == N,
-                "attempted to initialize vector with invalid number of values");
-}
+    : data_{static_cast<T>(values)...} {}
 
-template <size_t N, typename T>
-inline constexpr void swap(Vector<N, T>& a, Vector<N, T>& b) noexcept {
+template <concepts::vector VectorT>
+inline constexpr void swap(VectorT& a, VectorT& b) noexcept {
   std::swap(a.data_, b.data_);
 }
 
@@ -142,10 +139,10 @@ inline constexpr Vector<N, T>& Vector<N, T>::operator/=(
   return *this;
 }
 
-template <size_t N, typename S, typename T>
-inline constexpr Vector<N, T> operator*(const S& a,
-                                        const Vector<N, T>& b) noexcept {
-  Vector<N, T> result;
+template <concepts::vector VectorT, typename S>
+inline constexpr VectorT operator*(const S& a, const VectorT& b) noexcept {
+  constexpr size_t N = VectorT::ndim;
+  VectorT result;
   UTIL_LOOP_UNROLL(N)
   for (size_t i = 0; i < N; ++i) {
     result[i] = a * b[i];
@@ -210,10 +207,10 @@ inline Vector<N, T> Vector<N, T>::unit() const {
   return (*this) * (1 / std::sqrt(denom_sq));
 }
 
-template <size_t N, typename T>
-inline constexpr Vector<N, T> max(const Vector<N, T>& a,
-                                  const Vector<N, T>& b) noexcept {
-  Vector<N, T> result;
+template <concepts::vector VectorT>
+inline constexpr VectorT max(const VectorT& a, const VectorT& b) noexcept {
+  constexpr size_t N = VectorT::ndim;
+  VectorT result;
   UTIL_LOOP_UNROLL(N)
   for (size_t i = 0; i < N; ++i) {
     result[i] = std::max(a[i], b[i]);
@@ -221,10 +218,10 @@ inline constexpr Vector<N, T> max(const Vector<N, T>& a,
   return result;
 }
 
-template <size_t N, typename T>
-inline constexpr Vector<N, T> min(const Vector<N, T>& a,
-                                  const Vector<N, T>& b) noexcept {
-  Vector<N, T> result;
+template <concepts::vector VectorT>
+inline constexpr VectorT min(const VectorT& a, const VectorT& b) noexcept {
+  constexpr size_t N = VectorT::ndim;
+  VectorT result;
   UTIL_LOOP_UNROLL(N)
   for (size_t i = 0; i < N; ++i) {
     result[i] = std::min(a[i], b[i]);
@@ -232,9 +229,11 @@ inline constexpr Vector<N, T> min(const Vector<N, T>& a,
   return result;
 }
 
-template <size_t N, typename T>
-inline constexpr T dot(const Vector<N, T>& a, const Vector<N, T>& b) noexcept {
-  T result{0};
+template <concepts::vector VectorT>
+inline constexpr VectorT::ScalarType dot(const VectorT& a,
+                                         const VectorT& b) noexcept {
+  constexpr size_t N = VectorT::ndim;
+  typename VectorT::ScalarType result{0};
   if constexpr (N > 0) {
     UTIL_LOOP_UNROLL(N)
     for (size_t i = 0; i < N; ++i) {
@@ -244,11 +243,10 @@ inline constexpr T dot(const Vector<N, T>& a, const Vector<N, T>& b) noexcept {
   return result;
 }
 
-template <size_t N, typename T>
-inline constexpr Vector<N, T> cross(const Vector<N, T>& a,
-                                    const Vector<N, T>& b) noexcept {
-  static_assert(N == 3, "Cross product is only supported with 3D vectors");
-  Vector<3, T> result;
+template <concepts::vector VectorT>
+  requires(VectorT::ndim == 3)
+inline constexpr VectorT cross(const VectorT& a, const VectorT& b) noexcept {
+  VectorT result;
   result[0] = a[1] * b[2] - a[2] * b[1];
   result[1] = a[2] * b[0] - a[0] * b[2];
   result[2] = a[0] * b[1] - a[1] * b[0];
@@ -260,11 +258,10 @@ namespace vector {
 
 inline void make_orthonormal_reversed() {}
 
-template <size_t N, typename T, typename... VectorTypes>
-  requires(std::same_as<VectorTypes, Vector<N, T>> && ...)
-inline void make_orthonormal_reversed(Vector<N, T>& head,
-                                      VectorTypes&... tail) {
-  static_assert(sizeof...(tail) + 1 <= N,
+template <concepts::vector VectorT, concepts::vector... VectorTs>
+  requires(concepts::homogeneous<VectorT, VectorTs...>)
+inline void make_orthonormal_reversed(VectorT& head, VectorTs&... tail) {
+  static_assert(sizeof...(tail) + 1 <= VectorT::ndim,
                 "Can't make orthonormal basis since number of vectors is "
                 "larger than vector dimension");
   make_orthonormal_reversed(tail...);
@@ -276,11 +273,7 @@ template <typename Func, typename Args, size_t... Idxs>
 inline auto apply_permuted_args(Func&& func, Args&& args,
                                 std::index_sequence<Idxs...>) {
   constexpr size_t num_idxs = sizeof...(Idxs);
-  if constexpr (num_idxs == 0) {
-    return std::forward<Func>(func)();
-  } else {
-    return std::forward<Func>(func)(std::get<num_idxs - 1 - Idxs>(args)...);
-  }
+  return std::forward<Func>(func)(std::get<num_idxs - 1 - Idxs>(args)...);
 }
 
 template <typename Func, typename... Args>
@@ -293,17 +286,12 @@ inline auto apply_reversed_args(Func&& func, Args&&... args) {
 }  // namespace vector
 }  // namespace impl
 
-inline void make_orthonormal() {}
-
-template <size_t N, typename T, typename... VectorTypes>
-  requires(std::same_as<VectorTypes, Vector<N, T>> && ...)
-inline void make_orthonormal(Vector<N, T>& head, VectorTypes&... tail) {
-  static_assert(sizeof...(tail) + 1 <= N,
-                "Can't make orthonormal basis since number of vectors is "
-                "larger than vector dimension");
-  impl::vector::apply_reversed_args([] (auto&... vs) {
-    impl::vector::make_orthonormal_reversed(vs...);
-  }, head, tail...);
+template <concepts::vector... VectorTs>
+  requires(concepts::homogeneous<VectorTs...>)
+inline void make_orthonormal(VectorTs&... vs) {
+  impl::vector::apply_reversed_args(
+      [](auto&... vs) { impl::vector::make_orthonormal_reversed(vs...); },
+      vs...);
 }
 
 }  // namespace util
