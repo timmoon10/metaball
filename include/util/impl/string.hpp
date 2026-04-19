@@ -4,8 +4,10 @@
 #include <sstream>
 #include <string>
 #include <string_view>
-#include <type_traits>
+#include <tuple>
+#include <typeinfo>
 #include <utility>
+#include <vector>
 
 #include "util/error.hpp"
 
@@ -19,7 +21,7 @@ namespace impl {
 namespace string {
 
 template <typename T>
-concept HasToString = requires(T t) {
+concept convertible_to_string = requires(T t) {
   { std::to_string(t) } -> std::convertible_to<std::string>;
 };
 
@@ -39,7 +41,7 @@ inline constexpr const char* to_string_like(const char* val) noexcept {
   return val;
 }
 
-template <impl::string::HasToString T>
+template <impl::string::convertible_to_string T>
 inline std::string to_string_like(const T& val) {
   return std::to_string(val);
 }
@@ -118,27 +120,22 @@ namespace impl {
 namespace string {
 
 template <typename T>
-concept HasInsertionOperator =
+concept stringstream_insertable =
     requires(std::istringstream iss, T t) { iss >> t; };
-
-template <typename T>
-concept IsStringLike =
-    std::convertible_to<std::string, T> || std::same_as<T, const char*>;
 
 }  // namespace string
 }  // namespace impl
 
-// string
+// String types
+template <typename T>
+  requires(std::convertible_to<std::string_view, T>)
+inline T from_string(const std::string_view& str) {
+  return str;
+}
 template <>
 inline std::string from_string<std::string>(const std::string_view& str) {
+  // string_view requires explicit conversion to string
   return std::string(str);
-}
-
-// string_view
-template <>
-inline std::string_view from_string<std::string_view>(
-    const std::string_view& str) {
-  return str;
 }
 
 // bool
@@ -149,9 +146,11 @@ inline bool from_string<bool>(const std::string_view& str) {
   for (size_t i = 0; i < temp_str.size(); ++i) {
     temp_str[i] = std::tolower(static_cast<unsigned char>(temp_str[i]));
   }
-  if (temp_str == "true" || temp_str == "yes" || temp_str == "on") {
+  if (temp_str == "true" || temp_str == "yes" || temp_str == "on" ||
+      temp_str == "1") {
     return true;
-  } else if (temp_str == "false" || temp_str == "no" || temp_str == "off") {
+  } else if (temp_str == "false" || temp_str == "no" || temp_str == "off" ||
+             temp_str == "0") {
     return false;
   }
 
@@ -161,11 +160,11 @@ inline bool from_string<bool>(const std::string_view& str) {
 
 // Numeric types
 template <typename T>
-  requires(impl::string::HasInsertionOperator<T> &&
-           !impl::string::IsStringLike<T> && !std::same_as<T, bool>)
+  requires(impl::string::stringstream_insertable<T> &&
+           !std::convertible_to<std::string_view, T> && !std::same_as<T, bool>)
 inline T from_string(const std::string& str) {
   T value;
-  std::istringstream iss(str.c_str());
+  std::istringstream iss(str);
   iss >> value;
   UTIL_CHECK(iss && iss.eof(),
              "Invalid conversion from string (type=", typeid(T).name(),
@@ -173,8 +172,8 @@ inline T from_string(const std::string& str) {
   return value;
 }
 template <typename T>
-  requires(impl::string::HasInsertionOperator<T> &&
-           !impl::string::IsStringLike<T> && !std::same_as<T, bool>)
+  requires(impl::string::stringstream_insertable<T> &&
+           !std::convertible_to<std::string_view, T> && !std::same_as<T, bool>)
 inline T from_string(const std::string_view& str) {
   return from_string<T>(std::string(str));
 }

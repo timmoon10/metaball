@@ -11,17 +11,13 @@ template <size_t NDim, typename Scalar = double>
 class Vector;
 
 template <typename T>
-inline constexpr bool is_vector_v = false;
+inline constexpr bool vector_instantiation_v = false;
 template <size_t NDim, typename Scalar>
-inline constexpr bool is_vector_v<Vector<NDim, Scalar>> = true;
-
-namespace concepts {
+inline constexpr bool vector_instantiation_v<Vector<NDim, Scalar>> = true;
 
 /*! \brief Whether a type is an instantiation of Vector */
 template <typename T>
-concept vector = is_vector_v<T>;
-
-}  // namespace concepts
+concept vector_instantiation = vector_instantiation_v<T>;
 
 /*! \brief Real vector */
 template <size_t NDim, typename Scalar>
@@ -48,7 +44,7 @@ class Vector {
   constexpr Vector(Ts... values) noexcept;
 
   /*! \brief Swap data between two vectors */
-  template <concepts::vector VectorT>
+  template <vector_instantiation VectorT>
   friend constexpr void swap(VectorT& a, VectorT& b) noexcept;
 
   /*! \brief Get vector element */
@@ -66,7 +62,7 @@ class Vector {
   constexpr Vector& operator-=(const Vector& other) noexcept;
   constexpr Vector& operator*=(const Scalar& other) noexcept;
   constexpr Vector& operator/=(const Scalar& other) noexcept;
-  template <concepts::vector VectorT, typename S>
+  template <vector_instantiation VectorT, typename S>
   friend constexpr VectorT operator*(const S& a, const VectorT& b) noexcept;
 
   /*! \brief Cast to underlying data container */
@@ -97,27 +93,27 @@ class Vector {
 };
 
 /*! \brief Entry-wise maximum */
-template <concepts::vector VectorT>
+template <vector_instantiation VectorT>
 constexpr VectorT max(const VectorT& a, const VectorT& b) noexcept;
 /*! \brief Entry-wise minimum */
-template <concepts::vector VectorT>
+template <vector_instantiation VectorT>
 constexpr VectorT min(const VectorT& a, const VectorT& b) noexcept;
 
 /*! \brief Dot product */
-template <concepts::vector VectorT>
+template <vector_instantiation VectorT>
 constexpr VectorT::ScalarType dot(const VectorT& a, const VectorT& b) noexcept;
 
 /*! \brief Cross product
  *
  * Only supported with 3D vectors.
  */
-template <concepts::vector VectorT>
+template <vector_instantiation VectorT>
   requires(VectorT::ndim == 3)
 constexpr VectorT cross(const VectorT& a, const VectorT& b) noexcept;
 
 /*! \brief Convert vectors to orthonormal basis */
-template <concepts::vector... VectorTs>
-  requires(concepts::homogeneous<VectorTs...>)
+template <vector_instantiation... VectorTs>
+  requires(homogeneous<VectorTs...>)
 void make_orthonormal(VectorTs&... vs);
 
 }  // namespace util

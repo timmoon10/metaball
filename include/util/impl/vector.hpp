@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <concepts>
 #include <utility>
@@ -31,7 +30,7 @@ template <typename... Ts>
 inline constexpr Vector<N, T>::Vector(Ts... values) noexcept
     : data_{static_cast<T>(values)...} {}
 
-template <concepts::vector VectorT>
+template <vector_instantiation VectorT>
 inline constexpr void swap(VectorT& a, VectorT& b) noexcept {
   std::swap(a.data_, b.data_);
 }
@@ -140,7 +139,7 @@ inline constexpr Vector<N, T>& Vector<N, T>::operator/=(
   return *this;
 }
 
-template <concepts::vector VectorT, typename S>
+template <vector_instantiation VectorT, typename S>
 inline constexpr VectorT operator*(const S& a, const VectorT& b) noexcept {
   constexpr size_t N = VectorT::ndim;
   VectorT result;
@@ -208,7 +207,7 @@ inline Vector<N, T> Vector<N, T>::unit() const {
   return (*this) * (1 / std::sqrt(denom_sq));
 }
 
-template <concepts::vector VectorT>
+template <vector_instantiation VectorT>
 inline constexpr VectorT max(const VectorT& a, const VectorT& b) noexcept {
   constexpr size_t N = VectorT::ndim;
   VectorT result;
@@ -219,7 +218,7 @@ inline constexpr VectorT max(const VectorT& a, const VectorT& b) noexcept {
   return result;
 }
 
-template <concepts::vector VectorT>
+template <vector_instantiation VectorT>
 inline constexpr VectorT min(const VectorT& a, const VectorT& b) noexcept {
   constexpr size_t N = VectorT::ndim;
   VectorT result;
@@ -230,7 +229,7 @@ inline constexpr VectorT min(const VectorT& a, const VectorT& b) noexcept {
   return result;
 }
 
-template <concepts::vector VectorT>
+template <vector_instantiation VectorT>
 inline constexpr VectorT::ScalarType dot(const VectorT& a,
                                          const VectorT& b) noexcept {
   constexpr size_t N = VectorT::ndim;
@@ -244,7 +243,7 @@ inline constexpr VectorT::ScalarType dot(const VectorT& a,
   return result;
 }
 
-template <concepts::vector VectorT>
+template <vector_instantiation VectorT>
   requires(VectorT::ndim == 3)
 inline constexpr VectorT cross(const VectorT& a, const VectorT& b) noexcept {
   VectorT result;
@@ -259,8 +258,8 @@ namespace vector {
 
 inline void make_orthonormal_reversed() {}
 
-template <concepts::vector VectorT, concepts::vector... VectorTs>
-  requires(concepts::homogeneous<VectorT, VectorTs...>)
+template <vector_instantiation VectorT, vector_instantiation... VectorTs>
+  requires(homogeneous<VectorT, VectorTs...>)
 inline void make_orthonormal_reversed(VectorT& head, VectorTs&... tail) {
   static_assert(sizeof...(tail) + 1 <= VectorT::ndim,
                 "Can't make orthonormal basis since number of vectors is "
@@ -273,8 +272,8 @@ inline void make_orthonormal_reversed(VectorT& head, VectorTs&... tail) {
 }  // namespace vector
 }  // namespace impl
 
-template <concepts::vector... VectorTs>
-  requires(concepts::homogeneous<VectorTs...>)
+template <vector_instantiation... VectorTs>
+  requires(homogeneous<VectorTs...>)
 inline void make_orthonormal(VectorTs&... vs) {
   apply_reversed_args(
       [](auto&... vs) { impl::vector::make_orthonormal_reversed(vs...); },
