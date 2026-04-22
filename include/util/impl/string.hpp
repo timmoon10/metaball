@@ -21,12 +21,24 @@ namespace impl {
 namespace string {
 
 template <typename T>
+struct always_false : std::false_type {};
+
+template <typename T>
 concept convertible_to_string = requires(T t) {
   { std::to_string(t) } -> std::convertible_to<std::string>;
 };
 
 }  // namespace string
 }  // namespace impl
+
+template <typename T>
+inline std::string to_string_like(const T&) {
+  // Use indirect assert condition to prevent the compiler from
+  // triggering a failure when the template is not instantiated.
+  static_assert(impl::string::always_false<T>::value,
+                "No to_string_like overload for type T");
+  return T{};
+}
 
 inline const std::string& to_string_like(const std::string& val) noexcept {
   return val;
@@ -46,18 +58,10 @@ inline std::string to_string_like(const T& val) {
   return std::to_string(val);
 }
 
-// Forward declare cases that internally call to_string_like
-template <std::ranges::range T>
-std::string to_string_like(const T& range);
-template <typename T1, typename T2>
-std::string to_string_like(const std::pair<T1, T2>& pair);
-template <typename... Ts>
-std::string to_string_like(const std::tuple<Ts...>& tuple);
-
 template <std::ranges::range T>
 inline std::string to_string_like(const T& range) {
   std::string str;
-  str += "[";
+  str += "(";
   bool first = true;
   for (const auto& val : range) {
     if (!first) {
@@ -66,18 +70,18 @@ inline std::string to_string_like(const T& range) {
     str += to_string_like(val);
     first = false;
   }
-  str += "]";
+  str += ")";
   return str;
 }
 
 template <typename T1, typename T2>
 inline std::string to_string_like(const std::pair<T1, T2>& pair) {
   std::string str;
-  str += "[";
+  str += "(";
   str += to_string_like(pair.first);
   str += ",";
   str += to_string_like(pair.second);
-  str += "]";
+  str += ")";
   return str;
 }
 
@@ -87,9 +91,9 @@ inline std::string to_string_like(const std::tuple<Ts...>& tuple) {
   auto entries_to_string = [&]<size_t... Is>(std::index_sequence<Is...>) {
     (..., ((str += Is > 0 ? "," : "") += to_string_like(std::get<Is>(tuple))));
   };
-  str += "[";
+  str += "(";
   entries_to_string(std::index_sequence_for<Ts...>());
-  str += "]";
+  str += ")";
   return str;
 }
 
