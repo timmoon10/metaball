@@ -33,15 +33,6 @@
 #include "util/string.hpp"
 #include "util/vector.hpp"
 
-namespace util {
-
-template <size_t N, typename T>
-inline std::string to_string_like(const Vector<N, T>& val) {
-  return to_string_like(static_cast<Vector<N, T>::ContainerType>(val));
-}
-
-}  // namespace util
-
 namespace metaball {
 
 Runner::Runner(QWidget* parent)

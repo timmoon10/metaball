@@ -52,6 +52,12 @@ class Vector {
   /*! \brief Get vector element */
   constexpr const Scalar& operator[](size_t i) const;
 
+  // Range iterators
+  constexpr Scalar* begin() noexcept;
+  constexpr const Scalar* begin() const noexcept;
+  constexpr Scalar* end() noexcept;
+  constexpr const Scalar* end() const noexcept;
+
   // Math operators
   constexpr Vector operator-() const noexcept;
   constexpr Vector operator+(const Vector& other) const noexcept;

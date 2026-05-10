@@ -46,6 +46,26 @@ inline constexpr const T& Vector<N, T>::operator[](size_t i) const {
 }
 
 template <size_t N, typename T>
+inline constexpr T* Vector<N, T>::begin() noexcept {
+  return data_.begin();
+}
+
+template <size_t N, typename T>
+inline constexpr const T* Vector<N, T>::begin() const noexcept {
+  return data_.begin();
+}
+
+template <size_t N, typename T>
+inline constexpr T* Vector<N, T>::end() noexcept {
+  return data_.end();
+}
+
+template <size_t N, typename T>
+inline constexpr const T* Vector<N, T>::end() const noexcept {
+  return data_.end();
+}
+
+template <size_t N, typename T>
 inline constexpr Vector<N, T> Vector<N, T>::operator-() const noexcept {
   Vector<N, T> result;
   UTIL_LOOP_UNROLL(N)
