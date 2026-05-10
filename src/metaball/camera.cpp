@@ -1,7 +1,5 @@
 #include "metaball/camera.hpp"
 
-#include <omp.h>
-
 #include <algorithm>
 #include <array>
 #include <cmath>

@@ -15,6 +15,7 @@
 #include "util/error.hpp"
 #include "util/math.hpp"
 #include "util/string.hpp"
+#include "util/vector.hpp"
 
 namespace util {
 
